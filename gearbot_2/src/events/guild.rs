@@ -119,7 +119,7 @@ async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Arc<BotC
         // TODO: find a way to queue the next one if needed without infinite recursion compile issues
         context.pending_chunks.get(&shard).unwrap().store(false, Ordering::SeqCst);
     }
-    let info = s.info().unwrap();
+    // let info = s.info().unwrap();
     // info!("Shard rate limit info after is {:?}, {}", info.ratelimit_refill(), info.ratelimit_requests());
 }
 
