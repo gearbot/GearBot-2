@@ -55,4 +55,13 @@ impl BotContext {
             requested.push(guild_id);
         }
     }
+
+    pub fn add_requested_guilds(&self, shard: &u64, guild_ids: Vec<GuildId>) {
+        let mut requested = self.requested_guilds.get(shard).unwrap().write();
+        for guild_id in guild_ids {
+            if !requested.contains(&guild_id) {
+                requested.push(guild_id);
+            }
+        }
+    }
 }

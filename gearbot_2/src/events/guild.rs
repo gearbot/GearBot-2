@@ -7,6 +7,7 @@ use twilight_model::guild::{Guild as TwilightGuild, PartialGuild};
 use twilight_model::id::GuildId;
 use crate::BotContext;
 use crate::cache::{Guild, Member};
+use crate::cache::guild::GuildCacheState;
 
 
 pub fn on_guild_create(shard: u64, guild: TwilightGuild, context: &Arc<BotContext>) {
@@ -128,6 +129,21 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
         request_guild_members(shard, guild_id, &context).await;
     } else {
         context.pending_chunks.get(&shard).unwrap().store(false, Ordering::SeqCst);
-        info!("No more guild member requests pending for shard {}!", shard)
+
+        let mut unfinished_business = Vec::new();
+        // verify all are actually done
+        context.cache.for_each_guild(|guild_id, guild| {
+            let state = guild.cache_state();
+            if state == GuildCacheState::Created || state == GuildCacheState::ReceivingMembers {
+                unfinished_business.push(guild_id.clone())
+            }
+        });
+
+        if unfinished_business.is_empty() {
+            info!("No more guild member requests pending for shard {}!", shard)
+        } else {
+            warn!("No more guild member requests where pending, yet {} guild(s) are not fully cached, retrying...", unfinished_business.len());
+            context.add_requested_guilds(&shard, unfinished_business);
+        }
     }
 }
