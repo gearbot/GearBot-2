@@ -1,0 +1,19 @@
+[package]
+name = "gearbot_2_lib"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+fluent-bundle = "0.15"
+intl-memoizer = "0.5"
+unic-langid = "0.9"
+tracing = "0.1"
+twilight-http = "0.8"
+twilight-model = "0.8"
+
+
+# for local testing
+#twilight-http = {path="../../twilight/http"}
+#twilight-model = {path="../../twilight/model"}

@@ -1,0 +1,30 @@
+[package]
+name = "gearbot_2"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "4.0.0-beta.16"
+twilight-http = "0.8"
+twilight-gateway = "0.8"
+twilight-model = "0.8"
+twilight-util = "0.8"
+twilight-embed-builder = "0.8"
+twilight-mention = "0.8"
+gearbot_2_lib = { path = "../gearbot_2_lib" }
+tokio = { default-features = false, features = ["macros", "rt-multi-thread", "sync", "time", "parking_lot"], version = "1.5" }
+parking_lot = "0.11"
+tracing = "0.1"
+tracing-subscriber = {version ="0.3", features= ["env-filter"]}
+futures-util = "0.3"
+prometheus = "0.13"
+
+# For local testing
+#twilight-http = {path="../../twilight/http"}
+#twilight-gateway = {path="../../twilight/gateway"}
+#twilight-model = {path="../../twilight/model"}
+#twilight-util = {path="../../twilight/util"}
+#twilight-embed-builder = {path="../../twilight/embed-builder"}
+#twilight-mention = {path="../../twilight/mention"}

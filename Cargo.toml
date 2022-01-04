@@ -1,0 +1,2 @@
+[workspace]
+members = ["gearbot_2", "gearbot_2_api", "gearbot_2_lib"]
