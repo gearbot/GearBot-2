@@ -14,7 +14,7 @@ pub fn on_ready(shard: u64, context: &Arc<BotContext>) {
 }
 
 pub fn on_resume(shard: u64, context: &Arc<BotContext>) {
-    if !context.has_requested_guilds(&shard) {
+    if context.has_requested_guilds(&shard) {
         error!("We have guilds queued up for member requesting, but got interrupted by a disconnect, resuming chunk requests");
         tokio::spawn(request_next_guild(shard, context.clone()));
     }

@@ -143,7 +143,13 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
             info!("No more guild member requests pending for shard {}!", shard)
         } else {
             warn!("No more guild member requests where pending, yet {} guild(s) are not fully cached, retrying...", unfinished_business.len());
-            context.add_requested_guilds(&shard, unfinished_business);
+            let guild = unfinished_business.pop();
+            if !unfinished_business.is_empty() {
+                context.add_requested_guilds(&shard, unfinished_business);
+            }
+            context.pending_chunks.get(&shard).unwrap().store(true, Ordering::SeqCst);
+            // safe to unwrap, due to the empty check we know there was something to pop
+            request_guild_members(shard, guild.unwrap(), &context).await;
         }
     }
 }
