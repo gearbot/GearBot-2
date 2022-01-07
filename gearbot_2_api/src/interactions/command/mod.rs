@@ -10,23 +10,26 @@ use twilight_util::builder::CallbackDataBuilder;
 use twilight_model::channel::message::MessageFlags;
 use crate::State;
 
+mod debug;
 mod ping;
 
 pub struct Reply {
     pub response: InteractionResponse,
-    pub followup: bool
+    pub followup: bool,
 }
 
 pub type CommandResult = Result<Reply, CommandError>;
 
 pub enum Commands {
-    PING
+    PING,
+    DEBUG,
 }
 
 impl Commands {
     pub fn parse(data: &CommandData) -> Option<Self> {
         match data.name.as_str() {
             "ping" => Some(Self::PING),
+            "debug" => Some(Self::DEBUG),
             _ => None
         }
     }
@@ -43,19 +46,22 @@ impl Commands {
 
     fn execute(&self, command: &Box<ApplicationCommand>, options: &Vec<CommandDataOption>, state: &Arc<State>) -> CommandResult {
         match self {
-            Commands::PING => ping::execute()
+            Commands::PING => defer_async(false),
+            Commands::DEBUG => defer_async(false)
         }
     }
 
     fn get_name(&self) -> &str {
         match self {
-            Commands::PING => "ping"
+            Commands::PING => "ping",
+            Commands::DEBUG => "debug"
         }
     }
 
     async fn async_followup(self, command: Box<ApplicationCommand>, options: Vec<CommandDataOption>, state: &Arc<State>) -> Result<(), CommandError> {
         match self {
-            Commands::PING => ping::async_followup(command, state).await?
+            Commands::PING => ping::async_followup(command, state).await?,
+            Commands::DEBUG => debug::async_followup(command, state).await?
         };
         Ok(())
     }
@@ -124,24 +130,36 @@ pub async fn handle_command(interaction: Box<ApplicationCommand>, state: Arc<Sta
         state.metrics.command_durations.get_metric_with_label_values(&[&name, status]).unwrap().observe(observation);
         state.metrics.command_totals.get_metric_with_label_values(&[&name, status]).unwrap().inc();
 
+
         if followup {
+            let token = interaction.token.clone();
             actix_rt::spawn(async move {
                 let start = Utc::now();
                 let result = to_execute.async_followup(interaction, options, &state).await;
 
                 let duration = Utc::now() - start;
                 let observation = (duration.num_microseconds().unwrap_or(i64::MAX) as f64) / 1_000_000f64;
-
                 let status = match result {
                     Ok(_) => "COMPLETED",
                     Err(e) => {
-
-                        if e.is_user_error() {
+                        let metric_type = if e.is_user_error() {
                             "USER_ERROR"
                         } else {
                             error!("Error during followup for command '{}': {}", name, e.get_log_error());
                             "SYSTEM_ERROR"
+                        };
+
+                        // send an error followup to the requester
+                        if let Err(e) = state.discord_client.create_followup_message(&token).unwrap()
+                            //TODO: replace with actual lang once available
+                            .content(&e.get_user_error(&state.translator, "en_us"))
+                            .ephemeral(true)
+                            .exec()
+                            .await {
+                            error!("Failed to inform that something went wrong: {}", e)
                         }
+
+                        metric_type
                     }
                 };
 
@@ -156,4 +174,40 @@ pub async fn handle_command(interaction: Box<ApplicationCommand>, state: Arc<Sta
         error!("Received a command to execute from discord that can't be mapped to an internal command handler! {}", interaction.data.name);
         HttpResponse::BadRequest().body("")
     }
+}
+
+fn defer_async(ephemeral: bool) -> CommandResult {
+    let flags = if ephemeral {
+        MessageFlags::EPHEMERAL
+    } else {
+        MessageFlags::empty()
+    };
+    Ok(
+        Reply {
+            response:
+            InteractionResponse::DeferredChannelMessageWithSource(
+                CallbackDataBuilder::new().flags(flags).build()
+            ),
+            followup: true,
+        }
+    )
+}
+
+pub fn get_required_string_value<'a>(name: &str, options: &'a Vec<CommandDataOption>) -> Result<&'a str, CommandError> {
+    get_optional_string_value(name, options).ok_or_else(|| CommandError::MissingOption(name.to_string()))
+}
+
+pub fn get_optional_string_value<'a>(name: &str, options: &'a Vec<CommandDataOption>) -> Option<&'a str> {
+    for option in options {
+        if option.name == name {
+            return match &option.value {
+                CommandOptionValue::String(value) => {
+                    Some(value)
+                }
+                _ => None
+            }
+        }
+    }
+
+    None
 }

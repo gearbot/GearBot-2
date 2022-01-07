@@ -7,6 +7,7 @@ use twilight_http::Client;
 use gearbot_2_lib::translations::Translator;
 use actix_web::middleware::{DefaultHeaders, Logger};
 use tracing::info;
+use gearbot_2_lib::kafka::sender::KafkaSender;
 use gearbot_2_lib::util::get_twilight_client;
 use crate::middleware::{expose_metrics, PrometheusMetrics};
 use crate::util::Metrics;
@@ -25,6 +26,7 @@ pub struct State {
     pub discord_client: Client,
     pub translator: Translator,
     pub metrics: Metrics,
+    pub kafka_sender: KafkaSender,
 }
 
 
@@ -45,16 +47,13 @@ async fn main() -> std::io::Result<()> {
     //loading translations
     let translator = Translator::new("translations", "en_US".to_string());
 
-
-
-
-
     // assemble shared state
     let inner_state = State {
         public_key,
         discord_client: client,
         translator,
-        metrics: Metrics::new()
+        metrics: Metrics::new(),
+        kafka_sender: KafkaSender::new(),
     };
     let state = Arc::new(inner_state);
 
@@ -78,4 +77,5 @@ async fn main() -> std::io::Result<()> {
         .bind("0.0.0.0:4000")?
         .run()
         .await
+
 }

@@ -60,7 +60,6 @@ pub struct Guild {
 
 impl From<TwilightGuild> for Guild {
     fn from(guild: TwilightGuild) -> Self {
-        // guild.voice_states
         Guild {
             name: guild.name,
             icon: guild.icon,
@@ -120,6 +119,10 @@ impl Guild {
         self.roles.write().remove(role_id)
     }
 
+    pub fn get_role_count(&self)-> usize {
+        self.roles.read().len()
+    }
+
     // Bulk receiving members from member chunks, returns how many of them where new
     pub fn receive_members(&self, members: impl Iterator<Item=(UserId, Arc<Member>)>, last: bool, metrics: &Metrics, shard: u64) -> u64 {
         // store members and increase the user mutual guilds count
@@ -160,12 +163,20 @@ impl Guild {
         self.members.read().get(user_id).cloned()
     }
 
+    pub fn get_member_count(&self) -> usize {
+        self.members.read().len()
+    }
+
     pub fn insert_channel(&self, channel_id: ChannelId, channel: Arc<Channel>) -> Option<Arc<Channel>> {
         self.channels.write().insert(channel_id, channel)
     }
 
     pub fn remove_channel(&self, channel_id: &ChannelId) -> Option<Arc<Channel>> {
         self.channels.write().remove(channel_id)
+    }
+
+    pub fn get_channel_count(&self) -> usize {
+        self.channels.read().len()
     }
 
     pub fn cache_state(&self) -> GuildCacheState {
@@ -176,11 +187,15 @@ impl Guild {
         *self.emoji.write() = convert_emoji(emoji)
     }
 
+    pub fn get_emoji_count(&self ) -> usize {
+        self.emoji.read().len()
+    }
+
 
     pub fn thread_sync(&self, sync: ThreadListSync) {
         let mut channels = self.channels.write();
         // channels.retain(|_, channel| channel.parent_id.map_or_else(|| true, |parent_id| sync.channel_ids.contains(&parent_id) ));
-        todo!("Needs twilight type fix to be released")
+        // todo!("Needs twilight type fix to be released")
     }
 
     pub fn set_voice_state(&self, user_id: UserId, state: Option<Arc<VoiceState>>) -> Option<Arc<VoiceState>> {
@@ -246,9 +261,9 @@ impl Cache {
         if let Some(old_guild) = &old {
             //One already existed, cleanup metrics and user cache
             self.cleanup_guild(shard, old_guild, metrics);
+        } else {
+            metrics.guilds.get_metric_with_label_values(&[&shard.to_string(), GuildCacheState::Created.name()]).unwrap().inc();
         }
-
-        metrics.guilds.get_metric_with_label_values(&[&shard.to_string(), GuildCacheState::Created.name()]).unwrap().inc();
 
 
         old

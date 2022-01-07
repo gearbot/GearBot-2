@@ -5,13 +5,21 @@ pub enum GearBotLangKey {
     //Ping command
     PingCalculating,
     PingCalculated,
+
+    //Error replies
+    GenericSystemError,
+    MissingRequiredOption,
+    InvalidOption,
 }
 
 impl GearBotLangKey {
     pub fn as_str(&self) -> &'static str {
         match self {
             GearBotLangKey::PingCalculating => "ping_calculating",
-            GearBotLangKey::PingCalculated => "ping_calculated"
+            GearBotLangKey::PingCalculated => "ping_calculated",
+            GearBotLangKey::GenericSystemError => "generic_system_error",
+            GearBotLangKey::MissingRequiredOption => "missing_required_option",
+            GearBotLangKey::InvalidOption => "invalid_option",
         }
     }
 }

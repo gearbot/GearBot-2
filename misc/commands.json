@@ -1,0 +1,26 @@
+[
+  {
+    "type": 1,
+    "name": "ping",
+    "description": "Pong!"
+  },
+  {
+    "type": 1,
+    "name": "debug",
+    "description": "Debug info",
+    "options": [
+      {
+        "type": 3,
+        "name": "component",
+        "description": "The component to get debug info for",
+        "required": true,
+        "choices": [
+          {
+            "name": "cache",
+            "value": "cache"
+          }
+        ]
+      }
+    ]
+  }
+]

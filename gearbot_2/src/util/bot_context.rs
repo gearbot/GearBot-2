@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::env;
 use std::ops::Range;
 use std::sync::atomic::AtomicBool;
 use parking_lot::RwLock;
@@ -9,6 +10,25 @@ use gearbot_2_lib::translations::Translator;
 use crate::cache::Cache;
 use crate::Metrics;
 
+#[derive(Clone, Eq, PartialEq)]
+pub enum BotStatus {
+    STARTING,
+    STANDBY,
+    PRIMARY,
+    TERMINATING
+}
+
+impl BotStatus {
+    pub fn name(&self) -> &str {
+        match self {
+            BotStatus::STARTING => "STARTING",
+            BotStatus::STANDBY => "STANDBY",
+            BotStatus::PRIMARY => "PRIMARY",
+            BotStatus::TERMINATING => "TERMINATING",
+        }
+    }
+}
+
 pub struct BotContext {
     pub translator: Translator,
     pub client: Client,
@@ -16,15 +36,27 @@ pub struct BotContext {
     pub metrics: Metrics,
     pub cache: Cache,
 
+    status: RwLock<BotStatus>,
+    pub cluster_info: ClusterInfo,
+
     requested_guilds: HashMap<u64, RwLock<Vec<GuildId>>>,
     pub pending_chunks: HashMap<u64, AtomicBool>
 }
 
+pub struct ClusterInfo {
+    pub cluster_id: u16,
+    pub shards: Range<u64>,
+    pub cluster_identifier: String,
+    pub total_shards: u64,
+}
+
+
+
 impl BotContext {
-    pub fn new(translator: Translator, client: Client, cluster: Cluster, cluster_id: u16, shards: Range<u64>) -> Self {
+    pub fn new(translator: Translator, client: Client, cluster: Cluster, cluster_id: u16, shards: Range<u64>, total_shards: u64) -> Self {
         let mut requested_guilds = HashMap::new();
         let mut pending_chunks = HashMap::new();
-        for shard_id in shards {
+        for shard_id in shards.clone() {
             requested_guilds.insert(shard_id, RwLock::new(Vec::new()));
             pending_chunks.insert(shard_id, AtomicBool::new(false));
         }
@@ -36,7 +68,14 @@ impl BotContext {
             metrics: Metrics::new(cluster_id),
             cache: Cache::new(),
             requested_guilds,
-            pending_chunks
+            pending_chunks,
+            status: RwLock::new(BotStatus::STARTING),
+            cluster_info: ClusterInfo {
+                cluster_id,
+                shards,
+                cluster_identifier: env::var("CLUSTER_IDENTIFIER").unwrap_or_else(|_| "gearbot".to_string()),
+                total_shards
+            }
         }
 
     }
@@ -63,5 +102,20 @@ impl BotContext {
                 requested.push(guild_id);
             }
         }
+    }
+
+    pub fn clear_requested_guilds(&self) {
+        for list in self.requested_guilds.values() {
+            list.write().clear();
+        }
+    }
+
+    //TODO: we only compare against this, are separate bool functions faster?
+    pub fn status(&self) -> BotStatus {
+        self.status.read().clone()
+    }
+
+    pub fn set_status(&self, status: BotStatus) {
+        *self.status.write() = status;
     }
 }

@@ -5,6 +5,7 @@ use twilight_http::Client;
 use twilight_http::client::ClientBuilder;
 use twilight_model::channel::message::AllowedMentions;
 
+
 pub async fn get_twilight_client() -> Result<Client, Box<dyn Error + Send + Sync>> {
     let token = env::var("BOT_TOKEN")?;
     let mut builder = ClientBuilder::new()
@@ -36,7 +37,7 @@ pub async fn get_twilight_client() -> Result<Client, Box<dyn Error + Send + Sync
 
     info!("Api credentials validated: {}#{} ({}) and application id {}", user.name, user.discriminator(), user.id, bot.id);
 
-    // client.set_application_id(bot.id);
+    client.set_application_id(bot.id);
 
     Ok(client)
 }

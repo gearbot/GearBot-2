@@ -47,6 +47,10 @@ impl Cache {
         self.users.read().get(user_id).cloned()
     }
 
+    pub fn get_user_count(&self) -> usize {
+        self.users.read().len()
+    }
+
     // bulk insert users. doesn't return old values since this is for member chunk processing
     // thus this should only ever process new users
     pub fn insert_users(&self, users: Vec<(UserId, Arc<User>)>) {

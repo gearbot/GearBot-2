@@ -1,11 +1,11 @@
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
-use tracing::{error, info, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 use twilight_model::gateway::payload::incoming::{GuildDelete, MemberChunk};
 use twilight_model::gateway::payload::outgoing::request_guild_members::RequestGuildMembersBuilder;
 use twilight_model::guild::{Guild as TwilightGuild, PartialGuild};
 use twilight_model::id::GuildId;
-use crate::BotContext;
+use crate::{BotContext, BotStatus};
 use crate::cache::{Guild, Member};
 use crate::cache::guild::GuildCacheState;
 
@@ -103,8 +103,14 @@ async fn new_guild_processor(shard: u64, guild_id: GuildId, guild: Arc<Guild>, c
 }
 
 async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Arc<BotContext>) {
+    if context.status() == BotStatus::TERMINATING {
+        info!("Cluster is terminating but guild members where requested, canceling all pending member requests!");
+        context.clear_requested_guilds();
+        return;
+    }
+
     let s = context.cluster.shard(shard).unwrap();
-    info!("Requesting guild members for guild {} on shard {}", guild_id, shard);
+    debug!("Requesting guild members for guild {} on shard {}", guild_id, shard);
     // let info = s.info().unwrap();
     // info!("Shard rate limit info before: (refill: {:?}, refill - now: {:?}, requests: {})", info.ratelimit_refill(), info.ratelimit_refill() - Instant::now(), info.ratelimit_requests());
     if let Err(e) = s.command(
@@ -133,9 +139,12 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
         let mut unfinished_business = Vec::new();
         // verify all are actually done
         context.cache.for_each_guild(|guild_id, guild| {
-            let state = guild.cache_state();
-            if state == GuildCacheState::Created || state == GuildCacheState::ReceivingMembers {
-                unfinished_business.push(guild_id.clone())
+            // cache is all guilds on the cluster, only look at the ones for this specific shard
+            if (guild_id.get() >> 22) % context.cluster_info.total_shards == shard {
+                let state = guild.cache_state();
+                if state == GuildCacheState::Created || state == GuildCacheState::ReceivingMembers {
+                    unfinished_business.push(guild_id.clone())
+                }
             }
         });
 

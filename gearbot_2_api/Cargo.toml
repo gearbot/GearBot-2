@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = "4.0.0-beta.16"
+actix-web = "4.0.0-beta.19"
 actix-rt = "2"
 twilight-http = "0.8"
 twilight-model = "0.8"
@@ -23,11 +23,11 @@ actix-utils = "3.0.0-beta.4"
 pin-project-lite = "0.2"
 prometheus = "0.13"
 tracing = "0.1"
-tracing-subscriber = {version ="0.3", features= ["env-filter"]}
+tracing-subscriber = {version ="0.3", features= ["env-filter", "fmt", "std"]}
 
 # for local testing
 #twilight-http = {path="../../twilight/http"}
 #twilight-model = {path="../../twilight/model"}
-#twilight-util = {path="../../twilight/util"}
+#twilight-util = {path="../../twilight/util", features=["builder"]}
 #twilight-embed-builder = {path="../../twilight/embed-builder"}
 #twilight-mention = {path="../../twilight/mention"}

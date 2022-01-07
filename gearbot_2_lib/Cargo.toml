@@ -12,6 +12,8 @@ unic-langid = "0.9"
 tracing = "0.1"
 twilight-http = "0.8"
 twilight-model = "0.8"
+rdkafka = { version = "0.28", features = ["cmake-build"] }
+bincode="2.0.0-alpha.2"
 
 
 # for local testing

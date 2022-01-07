@@ -9,14 +9,15 @@ use twilight_model::gateway::payload::outgoing::update_presence::UpdatePresenceP
 use twilight_model::gateway::presence::{Activity, ActivityType, Status};
 use gearbot_2_lib::translations::Translator;
 use gearbot_2_lib::util::get_twilight_client;
-use crate::util::{BotContext, Metrics, serve_metrics};
+use crate::util::{BotContext, BotStatus, Metrics, serve_metrics};
 use futures_util::StreamExt;
 use twilight_model::gateway::event::Event;
 use crate::cache::Cache;
 
-mod util;
+pub mod util;
 pub mod cache;
-mod events;
+pub mod events;
+mod communication;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -26,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     //TODO: move this to a central management system
     let cluster_id = 0;
     let clusters = 1;
-    let shards_per_cluster = 2;
+    let shards_per_cluster = 6;
 
     let client = get_twilight_client().await?;
     let translator = Translator::new("translations", "en_US".to_string());
@@ -64,11 +65,15 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         .build()
         .await?;
 
-    let context = Arc::new(BotContext::new(translator, client, cluster, cluster_id as u16, cluster_id * shards_per_cluster..(cluster_id + 1) * shards_per_cluster));
+    let context = Arc::new(BotContext::new(translator, client, cluster, cluster_id as u16, cluster_id * shards_per_cluster..(cluster_id + 1) * shards_per_cluster, shards_per_cluster * clusters));
+
+    // initialize kafka message listener
+    communication::initialize(context.clone())?;
 
     let c = context.clone();
     // start webserver on different thread
     thread::spawn(move || {
+        let c2 = c.clone();
         let sys = rt::System::new();
 
         // srv is server controller type, `dev::Server`
@@ -83,7 +88,13 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
             .workers(1) // this is just metrics, doesn't need to be able to handle much at all
             .run();
 
-        sys.block_on(srv)
+        let res = sys.block_on(srv);
+
+        // this shuts down on sigterm (actix installing it's own signal handlers?), take the cluster down along with it
+        c2.set_status(BotStatus::TERMINATING);
+        c2.cluster.down();
+
+        res
     });
 
 
@@ -117,10 +128,6 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
         // update cache
         events::handle_gateway_event(id, event, &context);
-
-
-
-
     }
 
     Ok(())
