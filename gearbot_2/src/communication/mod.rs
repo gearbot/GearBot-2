@@ -1,11 +1,11 @@
 use std::sync::Arc;
 use bincode::config::Configuration;
 use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
-use rdkafka::error::KafkaError;
 use rdkafka::Message as AnnoyingConflict;
-use tracing::{error, info, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 use gearbot_2_lib::kafka::listener::new_listener;
-use gearbot_2_lib::kafka::message::{InteractionCommand, Message};
+use gearbot_2_lib::kafka::message::{General, Message};
+use gearbot_2_lib::kafka::sender::{KafkaSender, KafkaSenderError};
 use crate::BotContext;
 use crate::util::BotStatus;
 
@@ -14,9 +14,17 @@ mod interaction;
 
 
 // we only need one so fine to crash out on startup
-pub fn initialize(context: Arc<BotContext>) -> Result<(), KafkaError> {
-    info!("Establishing kafka communication link...");
+pub async fn initialize(context: Arc<BotContext>) -> Result<(), KafkaSenderError> {
+    info!("Initializing kafka queue communication...");
     let topic = format!("{}_cluster_{}", context.cluster_info.cluster_identifier, context.cluster_info.cluster_id);
+
+    // first we send a no-op "Hello" message to the queue, this serves multiple purposes
+    //1. we ensure the queue exists, if not the broker will make it
+    //2. if there is no primary instance running for this cluster, we will be the ones receiving our own message, this will trigger immediate promotion to primary instance mode.
+
+    debug!("Greeting the cluster queue...");
+    KafkaSender::new().send(&topic, &Message::General(General::Hello)).await?;
+
     match new_listener(&[&topic], Some(&context.cluster_info.cluster_identifier)) {
         Ok(listener) => {
             info!("Communication link ready. Spawning background task to receive messages on topic '{}'", topic);
@@ -24,14 +32,22 @@ pub fn initialize(context: Arc<BotContext>) -> Result<(), KafkaError> {
             Ok(())
         }
         Err(e) => {
-            Err(e)
+            Err(KafkaSenderError::Kafka(e))
         }
     }
 }
 
 async fn receiver(listener: StreamConsumer, context: Arc<BotContext>) {
     loop {
-        match listener.recv().await {
+        let message = listener.recv().await;
+        // check bot status so we can move into primary instance mode if needed
+        let status = context.status();
+        if matches!(status, BotStatus::STARTING | BotStatus::STANDBY) {
+            info!("Got a cluster command while in {} mode, promoting to primary instance mode.", status.name());
+            context.set_status(BotStatus::PRIMARY);
+        }
+
+        match message {
             Ok(message) => {
                 if let Some(payload) = message.payload() {
                     match bincode::decode_from_slice::<Message, Configuration>(payload, Configuration::standard()) {
@@ -46,19 +62,13 @@ async fn receiver(listener: StreamConsumer, context: Arc<BotContext>) {
                             }
                             handle_message(decoded_message, context.clone());
 
-                            // Check if the cluster should remain up
-                            // we only check after we handled the message so a message can be used to put this server into shutting down mode
-                            let status = context.status();
-                            match &status {
-                                BotStatus::STARTING | BotStatus::STANDBY => {
-                                    warn!("Got a cluster command while in {} mode, meaning nobody else was listening to the queue. Moving into primary cluster mode!", status.name())
-                                }
-                                BotStatus::PRIMARY => {}
-                                BotStatus::TERMINATING => {
-                                    info!("Cluster shutting down, terminating kafka message receiver");
-                                    return;
-                                }
+
+                            // terminate if needed
+                            if matches!(context.status(), BotStatus::TERMINATING) {
+                                info!("Kafka queue message receiver terminated!");
+                                return;
                             }
+
                         }
                         Err(e) => {
                             error!("Failed to decode message on topic {}: {}", message.topic(), e)
@@ -77,7 +87,8 @@ async fn receiver(listener: StreamConsumer, context: Arc<BotContext>) {
 
 fn handle_message(message: Message, context: Arc<BotContext>) {
     match message {
-        Message::General(message) => {}
+        Message::General(message) =>
+            general::handle(message, context),
         Message::Interaction { token, command } => {
             tokio::spawn(interaction::handle(token, command, context));
         }

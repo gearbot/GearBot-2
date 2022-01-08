@@ -20,7 +20,7 @@ impl Message {
 
 #[derive(Encode, Decode, Debug)]
 pub enum General {
-    Placeholder
+    Hello
 }
 
 #[derive(Encode, Decode, Debug)]

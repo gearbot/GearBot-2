@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::time::Duration;
 use bincode::config::Configuration;
@@ -39,10 +40,13 @@ impl KafkaSender {
     }
 }
 
+#[derive(Debug)]
 pub enum KafkaSenderError {
     Encode(EncodeError),
     Kafka(KafkaError),
 }
+
+impl Error for KafkaSenderError {}
 
 impl From<EncodeError> for KafkaSenderError {
     fn from(e: EncodeError) -> Self {

@@ -68,7 +68,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let context = Arc::new(BotContext::new(translator, client, cluster, cluster_id as u16, cluster_id * shards_per_cluster..(cluster_id + 1) * shards_per_cluster, shards_per_cluster * clusters));
 
     // initialize kafka message listener
-    communication::initialize(context.clone())?;
+    communication::initialize(context.clone()).await?;
 
     let c = context.clone();
     // start webserver on different thread
