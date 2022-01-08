@@ -35,10 +35,18 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - zookeeper
       - kafka
     restart: always
     environment:
       - KAFKA_CLUSTERS_0_NAME=local
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+
+  discord-proxy:
+    image: twilightrs/http-proxy:metrics
+    container_name: discord-proxy
+    ports:
+      - "3000:80"
+    environment:
+      RUST_LOG: twilight_http_proxy=debug,info
+      DISCORD_TOKEN: "TODO: make it boot without one"
