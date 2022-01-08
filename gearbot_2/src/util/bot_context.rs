@@ -62,11 +62,13 @@ impl BotContext {
             pending_chunks.insert(shard_id, AtomicBool::new(false));
         }
 
+        let metrics= Metrics::new(cluster_id);
+        metrics.status.get_metric_with_label_values(&[BotStatus::STARTING.name()]).unwrap().set(1);
         BotContext {
             translator,
             client,
             cluster,
-            metrics: Metrics::new(cluster_id),
+            metrics,
             cache: Cache::new(),
             requested_guilds,
             pending_chunks,
