@@ -3,6 +3,7 @@ use std::env;
 use std::ops::Range;
 use std::sync::atomic::AtomicBool;
 use parking_lot::RwLock;
+use tracing::info;
 use twilight_gateway::Cluster;
 use twilight_http::Client;
 use twilight_model::id::GuildId;
@@ -115,7 +116,17 @@ impl BotContext {
         self.status.read().clone()
     }
 
-    pub fn set_status(&self, status: BotStatus) {
-        *self.status.write() = status;
+    pub fn set_status(&self, new_status: BotStatus) {
+        // get lock
+        let mut status = self.status.write();
+
+        info!("Cluster status change: {} => {}", status.name(), new_status.name());
+
+        // update metrics
+        self.metrics.status.reset();
+        self.metrics.status.get_metric_with_label_values(&[new_status.name()]).unwrap().set(1);
+
+        //store new status
+        *status = new_status;
     }
 }

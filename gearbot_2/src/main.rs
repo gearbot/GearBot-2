@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     //TODO: move this to a central management system
     let cluster_id = 0;
     let clusters = 1;
-    let shards_per_cluster = 6;
+    let shards_per_cluster = 1;
 
     let client = get_twilight_client().await?;
     let translator = Translator::new("translations", "en_US".to_string());
@@ -129,6 +129,8 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         // update cache
         events::handle_gateway_event(id, event, &context);
     }
+
+    info!("Bot event loop terminated. Shutdown complete!");
 
     Ok(())
 }

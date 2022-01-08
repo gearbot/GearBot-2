@@ -14,6 +14,8 @@ pub struct Metrics {
 
     pub members: IntGauge,
     pub users: IntGauge,
+
+    pub status: IntGaugeVec,
 }
 
 impl Metrics {
@@ -37,13 +39,17 @@ impl Metrics {
         let users = IntGauge::new("users", "Total cached members").unwrap();
         registry.register(Box::new(users.clone())).unwrap();
 
+        let status = IntGaugeVec::new(Opts::new("status", "Cluster status"), &["state"]).unwrap();
+        registry.register(Box::new(status.clone())).unwrap();
+
         Metrics {
             registry,
             gateway_events,
             shard_states,
             guilds,
             members,
-            users
+            users,
+            status
         }
     }
 
