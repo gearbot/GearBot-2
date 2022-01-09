@@ -194,8 +194,7 @@ impl Guild {
 
     pub fn thread_sync(&self, sync: ThreadListSync) {
         let mut channels = self.channels.write();
-        // channels.retain(|_, channel| channel.parent_id.map_or_else(|| true, |parent_id| sync.channel_ids.contains(&parent_id) ));
-        // todo!("Needs twilight type fix to be released")
+        channels.retain(|_, channel| channel.parent_id.map_or_else(|| true, |parent_id| sync.channel_ids.contains(&parent_id) ));
     }
 
     pub fn set_voice_state(&self, user_id: UserId, state: Option<Arc<VoiceState>>) -> Option<Arc<VoiceState>> {

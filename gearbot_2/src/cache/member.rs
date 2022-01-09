@@ -38,7 +38,7 @@ impl Member {
             roles: member.roles,
             joined_at: member.joined_at,
             pending: member.pending,
-            communication_disabled_until: None //member.communication_disabled_until, //todo: re-enable once pr lands
+            communication_disabled_until: member.communication_disabled_until,
         }
     }
 
@@ -50,7 +50,7 @@ impl Member {
             roles: member.roles,
             joined_at: member.joined_at,
             pending: member.pending,
-            communication_disabled_until: None //member.communication_disabled_until, //todo: re-enable once pr lands
+            communication_disabled_until: member.communication_disabled_until,
         }
     }
 
@@ -62,7 +62,7 @@ impl Member {
             roles: member.roles,
             joined_at: member.joined_at,
             pending: member.pending,
-            communication_disabled_until: None //member.communication_disabled_until, //todo: re-enable once pr lands
+            communication_disabled_until: member.communication_disabled_until,
         }
     }
 
@@ -70,7 +70,7 @@ impl Member {
         self.nickname != member.nick
             || self.avatar != member.avatar
             || self.pending != member.pending
-            // || self.communication_disabled_until != member.communication_disabled_until //todo: re-enable once pr lands
+             || self.communication_disabled_until != member.communication_disabled_until
             || self.roles.len() != member.roles.len()
             || self.roles != member.roles
     }

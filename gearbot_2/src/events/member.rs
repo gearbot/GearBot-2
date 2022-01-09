@@ -120,7 +120,6 @@ pub fn on_member_remove(member_remove: MemberRemove, context: &Arc<BotContext>) 
         if let Some(old) = old {
             // cleanup the user if this was the last mutual guild
             // we still have an arc to use but this purges the cached cache copy if needed
-            //todo: can this be optimized to not require a user clone?
             if old.get_mutual_guilds() == 0 {
                 context.cache.cleanup_user(&member_remove.user.id)
             }

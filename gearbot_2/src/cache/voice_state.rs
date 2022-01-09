@@ -21,7 +21,7 @@ impl VoiceState {
                     server_muted: state.mute,
                     deafened: state.self_deaf,
                     server_deafened: state.deaf,
-                    video: false, //state.self_video, //TODO: use actual value once released in twilight
+                    video: state.self_video,
                     streaming: state.self_stream,
                 }
             )

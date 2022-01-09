@@ -38,7 +38,7 @@ pub fn handle_gateway_event(shard: u64, event: Event, context: &Arc<BotContext>)
         Event::RoleDelete(role_delete) => on_role_delete(role_delete, context),
         Event::RoleUpdate(role_update) => on_role_update(role_update, context),
         Event::ThreadCreate(thread_create) => on_thread_create(thread_create.0, context),
-        Event::ThreadDelete(thread_delete) => on_thread_delete(thread_delete.0, context),
+        Event::ThreadDelete(thread_delete) => on_thread_delete(thread_delete, context),
         Event::ThreadListSync(thread_sync) => on_thread_sync(thread_sync, context),
         Event::ThreadMemberUpdate(_) => {} // not useful
         Event::ThreadMembersUpdate(thread_members_update) => on_thread_members_update(thread_members_update, context),
