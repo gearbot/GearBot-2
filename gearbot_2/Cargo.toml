@@ -23,6 +23,8 @@ prometheus = "0.13"
 rdkafka = { version = "0.28", features = ["cmake-build"] }
 bincode = "2.0.0-alpha.2"
 num-format = "0.4"
+uuid = { version = "0.8", features = ["serde", "v4"] }
+time = "0.3"
 
 # For local testing
 #twilight-http = {path="../../twilight/http"}

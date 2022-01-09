@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use num_format::{Locale, ToFormattedString};
 use twilight_embed_builder::EmbedBuilder;
-use twilight_model::id::ApplicationId;
 use crate::BotContext;
 use crate::communication::interaction::InteractionResult;
 use crate::util::error::InteractionError;

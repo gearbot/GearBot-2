@@ -20,7 +20,11 @@ impl Message {
 
 #[derive(Encode, Decode, Debug)]
 pub enum General {
-    Hello
+    Hello(),
+    ShutdownAt {
+        time: u128,
+        uuid: u128
+    }
 }
 
 #[derive(Encode, Decode, Debug)]

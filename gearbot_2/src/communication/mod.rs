@@ -1,8 +1,13 @@
 use std::sync::Arc;
+use std::time::Duration;
 use bincode::config::Configuration;
-use rdkafka::consumer::{CommitMode, Consumer, StreamConsumer};
+use rdkafka::consumer::{BaseConsumer, CommitMode, Consumer, StreamConsumer};
+use rdkafka::groups::GroupInfo;
 use rdkafka::Message as AnnoyingConflict;
+use rdkafka::util::Timeout;
+use tokio::sync::SetError;
 use tracing::{debug, error, info, trace, warn};
+use gearbot_2_lib::kafka::base_kafka_config;
 use gearbot_2_lib::kafka::listener::new_listener;
 use gearbot_2_lib::kafka::message::{General, Message};
 use gearbot_2_lib::kafka::sender::{KafkaSender, KafkaSenderError};
@@ -13,22 +18,72 @@ mod general;
 mod interaction;
 
 
-// we only need one so fine to crash out on startup
+
+pub async fn initialize_when_lonely(context: Arc<BotContext>) {
+    if let Err(e) = KafkaSender::new().send(&context.get_queue_topic(), &Message::General(General::Hello())).await {
+        error!("Failed to send hello message to the queue: {}", e);
+    }
+    debug!("Fetching group info");
+    let consumer: BaseConsumer = base_kafka_config().create().unwrap();
+    loop {
+        {
+            if context.is_status(BotStatus::TERMINATING) {
+                return;
+            }
+            let metadata = consumer.fetch_group_list(Some(&context.get_queue_topic()), Timeout::After(Duration::from_secs(20)));
+            match metadata {
+                Ok(metadata) => {
+                    if let Some(info) = metadata.groups().iter().filter(|group| *group.name() == context.get_queue_topic()).collect::<Vec<&GroupInfo>>().first() {
+                        if info.members().is_empty() {
+                            info!("No other instances listening on the queue, we are now the primary instance!");
+                            context.set_status(BotStatus::PRIMARY);
+                            break;
+                        }
+                    } else {
+                        info!("No consumer group exists so nobody can be handling the queue, proceeding");
+                        break;
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to get group metadata: {}", e);
+                }
+            }
+        }
+        if context.is_status(BotStatus::PRIMARY) {
+            //the regular mechanics kicked in and put us in charge of the queue, no need to keep trying anymore
+            return;
+        }
+        trace!("Someone else is dealing with the queue, sleeping...");
+        tokio::time::sleep(Duration::from_secs(10)).await;
+
+    }
+
+    if let Err(e) = initialize(context).await {
+        error!("Failed to connect to the queue: {}", e);
+    }
+}
+
+
 pub async fn initialize(context: Arc<BotContext>) -> Result<(), KafkaSenderError> {
     info!("Initializing kafka queue communication...");
-    let topic = format!("{}_cluster_{}", context.cluster_info.cluster_identifier, context.cluster_info.cluster_id);
+    let topic = context.get_queue_topic();
 
-    // first we send a no-op "Hello" message to the queue, this serves multiple purposes
-    //1. we ensure the queue exists, if not the broker will make it
-    //2. if there is no primary instance running for this cluster, we will be the ones receiving our own message, this will trigger immediate promotion to primary instance mode.
+    match new_listener(&[&topic], &topic) {
+        // scope so this sender and listener can be dropped as soon as they are no longer needed
 
-    debug!("Greeting the cluster queue...");
-    KafkaSender::new().send(&topic, &Message::General(General::Hello)).await?;
-
-    match new_listener(&[&topic], Some(&context.cluster_info.cluster_identifier)) {
         Ok(listener) => {
             info!("Communication link ready. Spawning background task to receive messages on topic '{}'", topic);
-            tokio::spawn(receiver(listener, context));
+            let handle = tokio::spawn(receiver(listener, context.clone()));
+            if let Err(e) = context.set_receiver_handle(handle) {
+                error!("A receiver is already running! Aborting...");
+                let handle = match e {
+                    SetError::AlreadyInitializedError(handle) => handle,
+                    SetError::InitializingError(handle) => handle
+                };
+                handle.abort();
+            } else if !context.is_status(BotStatus::PRIMARY) {
+                context.set_status(BotStatus::PRIMARY);
+            }
             Ok(())
         }
         Err(e) => {
@@ -40,13 +95,6 @@ pub async fn initialize(context: Arc<BotContext>) -> Result<(), KafkaSenderError
 async fn receiver(listener: StreamConsumer, context: Arc<BotContext>) {
     loop {
         let message = listener.recv().await;
-        // check bot status so we can move into primary instance mode if needed
-        let status = context.status();
-        if matches!(status, BotStatus::STARTING | BotStatus::STANDBY) {
-            info!("Got a cluster command while in {} mode, promoting to primary instance mode.", status.name());
-            context.set_status(BotStatus::PRIMARY);
-        }
-
         match message {
             Ok(message) => {
                 if let Some(payload) = message.payload() {
@@ -61,13 +109,6 @@ async fn receiver(listener: StreamConsumer, context: Arc<BotContext>) {
                                 error!("Failed to commit queue index! {}", e)
                             }
                             handle_message(decoded_message, context.clone());
-
-
-                            // terminate if needed
-                            if matches!(context.status(), BotStatus::TERMINATING) {
-                                info!("Kafka queue message receiver terminated!");
-                                return;
-                            }
 
                         }
                         Err(e) => {
@@ -90,7 +131,9 @@ fn handle_message(message: Message, context: Arc<BotContext>) {
         Message::General(message) =>
             general::handle(message, context),
         Message::Interaction { token, command } => {
-            tokio::spawn(interaction::handle(token, command, context));
+            if context.is_status(BotStatus::PRIMARY) {
+                tokio::spawn(interaction::handle(token, command, context));
+            }
         }
     }
 }

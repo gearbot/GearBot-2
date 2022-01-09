@@ -1,6 +1,7 @@
 use std::thread;
 use std::error::Error;
 use std::sync::Arc;
+use std::time::Duration;
 use actix_web::{App, HttpServer, middleware, rt, web};
 use tracing::{info, trace};
 use twilight_gateway::cluster::{ClusterBuilder, ShardScheme};
@@ -19,10 +20,27 @@ pub mod cache;
 pub mod events;
 mod communication;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     tracing_subscriber::fmt::init();
     info!("GearBot 2 initializing!");
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .thread_name("GearPool")
+        .build()
+        .expect("Failed to build tokio runtime");
+    let result = runtime.block_on(async_main());
+
+    if result.is_ok() {
+        info!("GearBot main loop exited gracefully, giving the last tasks 30 seconds to finish cleaning up");
+        runtime.shutdown_timeout(Duration::from_secs(30));
+        info!("Shutdown complete!");
+        return Ok(());
+    }
+
+    result
+}
+
+async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     //TODO: move this to a central management system
     let cluster_id = 0;
@@ -67,8 +85,8 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
     let context = Arc::new(BotContext::new(translator, client, cluster, cluster_id as u16, cluster_id * shards_per_cluster..(cluster_id + 1) * shards_per_cluster, shards_per_cluster * clusters));
 
-    // initialize kafka message listener
-    communication::initialize(context.clone()).await?;
+    // initialize kafka message listener whenever possible
+    tokio::spawn(communication::initialize_when_lonely(context.clone()));
 
     let c = context.clone();
     // start webserver on different thread
@@ -84,20 +102,19 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
                 .wrap(middleware::Logger::default())
                 .route("/metrics", web::get().to(serve_metrics))
         })
-            .bind("127.0.0.1:9090")?
+            .bind("127.0.0.1:9091")?
             .workers(1) // this is just metrics, doesn't need to be able to handle much at all
             .run();
 
         let res = sys.block_on(srv);
 
         // this shuts down on sigterm (actix installing it's own signal handlers?), take the cluster down along with it
-        c2.set_status(BotStatus::TERMINATING);
-        c2.cluster.down();
+        if !c2.is_status(BotStatus::TERMINATING) {
+            c2.shutdown();
+        }
 
         res
     });
-
-
 
 
     // start the cluster in the background
@@ -110,6 +127,10 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 
     while let Some((id, event)) = events.next().await {
+        if context.is_status(BotStatus::TERMINATING) {
+            break;
+        }
+
         trace!("Shard: {}, Event: {:?}", id, event.kind());
         // update metrics first so we can move the event
         if let Some(name) = event.kind().name() {
@@ -130,7 +151,8 @@ async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         events::handle_gateway_event(id, event, &context);
     }
 
-    info!("Bot event loop terminated. Shutdown complete!");
+    info!("Bot event loop terminated, giving the final background tasks 30 seconds to finish up...");
+
 
     Ok(())
 }

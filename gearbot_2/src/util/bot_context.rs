@@ -1,12 +1,15 @@
 use std::collections::HashMap;
 use std::env;
 use std::ops::Range;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use parking_lot::RwLock;
+use tokio::sync::{OnceCell, SetError};
+use tokio::task::JoinHandle;
 use tracing::info;
 use twilight_gateway::Cluster;
 use twilight_http::Client;
 use twilight_model::id::GuildId;
+use uuid::Uuid;
 use gearbot_2_lib::translations::Translator;
 use crate::cache::Cache;
 use crate::Metrics;
@@ -41,7 +44,12 @@ pub struct BotContext {
     pub cluster_info: ClusterInfo,
 
     requested_guilds: HashMap<u64, RwLock<Vec<GuildId>>>,
-    pub pending_chunks: HashMap<u64, AtomicBool>
+    pub pending_chunks: HashMap<u64, AtomicBool>,
+
+    //uuid used to identify this instance
+    pub uuid: Uuid,
+    // the kafka receiver task once started
+    receiver_handle: OnceCell<JoinHandle<()>>
 }
 
 pub struct ClusterInfo {
@@ -78,13 +86,24 @@ impl BotContext {
                 shards,
                 cluster_identifier: env::var("CLUSTER_IDENTIFIER").unwrap_or_else(|_| "gearbot".to_string()),
                 total_shards
-            }
+            },
+            uuid: Uuid::new_v4(),
+            receiver_handle: Default::default()
         }
 
     }
 
     pub fn has_requested_guilds(&self, shard: &u64) -> bool {
         !self.requested_guilds.get(shard).unwrap().read().is_empty()
+    }
+
+    pub fn has_any_requested_guilds(&self) -> bool {
+        for (shard, pending) in self.requested_guilds.iter() {
+            if !pending.read().is_empty() || self.pending_chunks.get(shard).unwrap().load(Ordering::SeqCst) {
+                return true
+            }
+        }
+        false
     }
 
     pub fn get_next_requested_guild(&self, shard: &u64) -> Option<GuildId> {
@@ -113,9 +132,15 @@ impl BotContext {
         }
     }
 
-    //TODO: we only compare against this, are separate bool functions faster?
-    pub fn status(&self) -> BotStatus {
-        self.status.read().clone()
+    pub fn shutdown(&self) {
+        info!("Shutdown initiated...");
+        self.set_status(BotStatus::TERMINATING);
+        self.cluster.down();
+
+        if let Some(handle) = self.receiver_handle.get() {
+            info!("Handle found, killing queue listener");
+            handle.abort();
+        }
     }
 
     pub fn set_status(&self, new_status: BotStatus) {
@@ -130,5 +155,17 @@ impl BotContext {
 
         //store new status
         *status = new_status;
+    }
+
+    pub fn is_status(&self, status: BotStatus) -> bool {
+        *self.status.read() == status
+    }
+
+    pub fn get_queue_topic(&self) -> String {
+        format!("{}_cluster_{}", self.cluster_info.cluster_identifier, self.cluster_info.cluster_id)
+    }
+
+    pub fn set_receiver_handle(&self, handle: JoinHandle<()>) -> Result<(), SetError<JoinHandle<()>>> {
+        self.receiver_handle.set(handle)
     }
 }

@@ -1,11 +1,14 @@
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{debug, error, info, trace, warn};
 use twilight_model::gateway::payload::incoming::{GuildDelete, MemberChunk};
 use twilight_model::gateway::payload::outgoing::request_guild_members::RequestGuildMembersBuilder;
 use twilight_model::guild::{Guild as TwilightGuild, PartialGuild};
 use twilight_model::id::GuildId;
-use crate::{BotContext, BotStatus};
+use gearbot_2_lib::kafka::message::{General, Message};
+use gearbot_2_lib::kafka::sender::KafkaSender;
+use crate::{BotContext, BotStatus, communication};
 use crate::cache::{Guild, Member};
 use crate::cache::guild::GuildCacheState;
 
@@ -60,7 +63,7 @@ pub fn on_member_chunk(shard: u64, chunk: MemberChunk, context: &Arc<BotContext>
                     member
                 };
                 (uid, Arc::new(member))
-            }), last, &context.metrics, shard
+            }), last, &context.metrics, shard,
         );
 
         let user_count = new_users.len();
@@ -103,7 +106,7 @@ async fn new_guild_processor(shard: u64, guild_id: GuildId, guild: Arc<Guild>, c
 }
 
 async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Arc<BotContext>) {
-    if context.status() == BotStatus::TERMINATING {
+    if context.is_status(BotStatus::TERMINATING) {
         info!("Cluster is terminating but guild members where requested, canceling all pending member requests!");
         context.clear_requested_guilds();
         return;
@@ -149,7 +152,45 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
         });
 
         if unfinished_business.is_empty() {
-            info!("No more guild member requests pending for shard {}!", shard)
+            info!("No more guild member requests pending for shard {}!", shard);
+            if !context.has_any_requested_guilds() {
+                info!("All guilds across all shards are now cached");
+                if context.is_status(BotStatus::STARTING) {
+                    context.set_status(BotStatus::STANDBY);
+                    // 20 seconds should be plenty of time to ensure the current primary instance gets it, even in a failover scenario
+                    // the uuid is ensure we don't shut down ourselves accidentally
+                    //
+                    let goal = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap() + Duration::from_secs(30)).as_millis();
+
+                    if let Err(e) = KafkaSender::new()
+                        .send(&context.get_queue_topic(),
+                              &Message::General(
+                                  General::ShutdownAt {
+                                      time: goal,
+                                      uuid: context.uuid.as_u128(),
+                                  }))
+                        .await {
+                        error!("Failed to send the shutdown time to the old instance: {}", e);
+                    } else {
+                        // the primary cluster was informed, recalculate time left. using saturating sub to avoid overflowing into the next century
+                        let left = Duration::from_millis(
+                            goal.saturating_sub(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis()) as u64
+                        );
+
+                        info!("Ready to take over as primary instance in {} seconds", left.as_secs_f32());
+                        tokio::time::sleep(left).await;
+                        if context.is_status(BotStatus::STANDBY) {
+                            info!("Taking over as primary instance!");
+                            context.set_status(BotStatus::PRIMARY);
+                            if let Err(e) = communication::initialize(context.clone()).await {
+                                error!("Failed to connect to the queue: {}", e)
+                            }
+                        } else {
+                            info!("Promotion time reached but we where already in primary instance mode.")
+                        }
+                    }
+                }
+            }
         } else {
             warn!("No more guild member requests where pending, yet {} guild(s) are not fully cached, retrying...", unfinished_business.len());
             let guild = unfinished_business.pop();

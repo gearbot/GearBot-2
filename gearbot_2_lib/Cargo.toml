@@ -13,7 +13,10 @@ tracing = "0.1"
 twilight-http = "0.8"
 twilight-model = "0.8"
 rdkafka = { version = "0.28", features = ["cmake-build"] }
-bincode="2.0.0-alpha.2"
+bincode={ version="2.0.0-alpha.2", features=["serde"]}
+tokio = "1.15"
+uuid = { version = "0.8", features = ["v4"] }
+time = "0.3"
 
 
 # for local testing
