@@ -1,6 +1,6 @@
 [package]
 name = "gearbot_2_api"
-version = "0.1.0"
+version = "2.0.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -24,6 +24,7 @@ pin-project-lite = "0.2"
 prometheus = "0.13"
 tracing = "0.1"
 tracing-subscriber = {version ="0.3", features= ["env-filter", "fmt", "std"]}
+git-version = "0.3"
 
 # for local testing
 #twilight-http = {path="../../twilight/http"}
