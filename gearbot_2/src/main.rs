@@ -4,6 +4,7 @@ use actix_web::{middleware, rt, web, App, HttpServer};
 use futures_util::StreamExt;
 use gearbot_2_lib::translations::Translator;
 use gearbot_2_lib::util::get_twilight_client;
+use git_version::git_version;
 use std::error::Error;
 use std::sync::Arc;
 use std::thread;
@@ -15,6 +16,9 @@ use twilight_model::gateway::payload::outgoing::update_presence::UpdatePresenceP
 use twilight_model::gateway::presence::{Activity, ActivityType, Status};
 use twilight_model::gateway::Intents;
 
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const GIT_VERSION: &str = git_version!();
+
 pub mod cache;
 mod communication;
 pub mod events;
@@ -22,7 +26,7 @@ pub mod util;
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     tracing_subscriber::fmt::init();
-    info!("GearBot 2 initializing!");
+    info!("GearBot v{} ({}) initializing!", VERSION, GIT_VERSION);
     let runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .thread_name("GearPool")

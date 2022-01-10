@@ -5,12 +5,16 @@ use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use gearbot_2_lib::kafka::sender::KafkaSender;
 use gearbot_2_lib::translations::Translator;
 use gearbot_2_lib::util::get_twilight_client;
+use git_version::git_version;
 use ring::signature;
 use ring::signature::UnparsedPublicKey;
 use std::env;
 use std::sync::Arc;
 use tracing::info;
 use twilight_http::Client;
+
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub const GIT_VERSION: &str = git_version!();
 
 mod interactions;
 mod middleware;
@@ -32,7 +36,7 @@ pub struct State {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
-    info!("GearBot 2 api initializing!");
+    info!("GearBot v{} ({}) api initializing!", VERSION, GIT_VERSION);
 
     // reading env variables
     let hex_signature = env::var("PUBLIC_KEY").expect("Missing PUBLIC_KEY env variable!");
