@@ -23,7 +23,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: Swatinem/rust-cache@v1
-      with: { sharedKey: testRun }
+      with: { sharedKey: "testRun-${{ matrix.os }}" }
 
     - uses: actions-rs/toolchain@v1
       with:
@@ -43,7 +43,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: Swatinem/rust-cache@v1
-      with: { sharedKey: clippyCheck }
+      with: { sharedKey: "clippyCheck-${{ matrix.os }}" }
 
     - uses: actions-rs/toolchain@v1
       with:
