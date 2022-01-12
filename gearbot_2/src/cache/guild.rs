@@ -1,18 +1,18 @@
+use crate::cache::voice_state::VoiceState;
+use crate::cache::{Channel, Emoji, Member, Role};
+use crate::{Cache, Metrics};
+use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use parking_lot::RwLock;
 use tracing::{debug, trace};
-use twilight_model::guild::{MfaLevel, NSFWLevel, PartialGuild, VerificationLevel};
-use twilight_model::id::{ChannelId, EmojiId, GuildId, RoleId, UserId};
-use crate::cache::{Channel, Emoji, Member, Role};
 use twilight_model::channel::GuildChannel;
 use twilight_model::gateway::payload::incoming::ThreadListSync;
-use twilight_model::guild::Guild as TwilightGuild;
 use twilight_model::guild::Emoji as TwilightEmoji;
+use twilight_model::guild::Guild as TwilightGuild;
 use twilight_model::guild::Role as TwilightRole;
+use twilight_model::guild::{MfaLevel, NSFWLevel, PartialGuild, VerificationLevel};
+use twilight_model::id::{ChannelId, EmojiId, GuildId, RoleId, UserId};
 use twilight_model::voice::VoiceState as TwilightVoiceState;
-use crate::{Cache, Metrics};
-use crate::cache::voice_state::VoiceState;
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum GuildCacheState {
@@ -28,7 +28,7 @@ impl GuildCacheState {
             GuildCacheState::Created => "Created",
             GuildCacheState::ReceivingMembers => "Receiving members",
             GuildCacheState::Cached => "Cached",
-            GuildCacheState::Unavailable => "Unavailable"
+            GuildCacheState::Unavailable => "Unavailable",
         }
     }
 }
@@ -55,7 +55,6 @@ pub struct Guild {
     voice_states: Arc<RwLock<HashMap<UserId, Arc<VoiceState>>>>,
 
     cache_state: RwLock<GuildCacheState>,
-
 }
 
 impl From<TwilightGuild> for Guild {
@@ -86,7 +85,7 @@ impl From<TwilightGuild> for Guild {
 }
 
 impl Guild {
-    pub fn update(old :&Arc<Guild>, new: PartialGuild) -> Self {
+    pub fn update(old: &Arc<Guild>, new: PartialGuild) -> Self {
         Guild {
             name: new.name,
             icon: new.icon,
@@ -107,11 +106,11 @@ impl Guild {
             nsfw: new.nsfw_level,
             members: old.members.clone(),
             voice_states: old.voice_states.clone(),
-            cache_state: RwLock::new(old.cache_state.read().clone())
+            cache_state: RwLock::new(old.cache_state.read().clone()),
         }
     }
 
-    pub fn insert_role(&self, role: Arc<Role>) -> Option<Arc<Role>>{
+    pub fn insert_role(&self, role: Arc<Role>) -> Option<Arc<Role>> {
         self.roles.write().insert(role.id, role)
     }
 
@@ -119,12 +118,18 @@ impl Guild {
         self.roles.write().remove(role_id)
     }
 
-    pub fn get_role_count(&self)-> usize {
+    pub fn get_role_count(&self) -> usize {
         self.roles.read().len()
     }
 
     // Bulk receiving members from member chunks, returns how many of them where new
-    pub fn receive_members(&self, members: impl Iterator<Item=(UserId, Arc<Member>)>, last: bool, metrics: &Metrics, shard: u64) -> u64 {
+    pub fn receive_members(
+        &self,
+        members: impl Iterator<Item = (UserId, Arc<Member>)>,
+        last: bool,
+        metrics: &Metrics,
+        shard: u64,
+    ) -> u64 {
         // store members and increase the user mutual guilds count
         let mut stored_members = self.members.write();
         let mut inserted = 0;
@@ -135,15 +140,24 @@ impl Guild {
             }
         }
         // update cache state
-        let new_state = if last { GuildCacheState::Cached } else { GuildCacheState::ReceivingMembers };
+        let new_state = if last {
+            GuildCacheState::Cached
+        } else {
+            GuildCacheState::ReceivingMembers
+        };
         let mut state = self.cache_state.write();
 
-        metrics.guilds.with_label_values(&[&shard.to_string(), state.name()]).dec();
-        metrics.guilds.with_label_values(&[&shard.to_string(), new_state.name()]).inc();
+        metrics
+            .guilds
+            .with_label_values(&[&shard.to_string(), state.name()])
+            .dec();
+        metrics
+            .guilds
+            .with_label_values(&[&shard.to_string(), new_state.name()])
+            .inc();
         *state = new_state;
 
         inserted
-
     }
 
     pub fn insert_member(&self, user_id: UserId, member: Arc<Member>) -> Option<Arc<Member>> {
@@ -187,14 +201,17 @@ impl Guild {
         *self.emoji.write() = convert_emoji(emoji)
     }
 
-    pub fn get_emoji_count(&self ) -> usize {
+    pub fn get_emoji_count(&self) -> usize {
         self.emoji.read().len()
     }
 
-
     pub fn thread_sync(&self, sync: ThreadListSync) {
         let mut channels = self.channels.write();
-        channels.retain(|_, channel| channel.parent_id.map_or_else(|| true, |parent_id| sync.channel_ids.contains(&parent_id) ));
+        channels.retain(|_, channel| {
+            channel
+                .parent_id
+                .map_or_else(|| true, |parent_id| sync.channel_ids.contains(&parent_id))
+        });
     }
 
     pub fn set_voice_state(&self, user_id: UserId, state: Option<Arc<VoiceState>>) -> Option<Arc<VoiceState>> {
@@ -242,16 +259,25 @@ fn convert_voice_states(raw_states: Vec<TwilightVoiceState>) -> HashMap<UserId, 
     voice_states
 }
 
-
 impl Cache {
     // Insert a new guild state and return the previous one if one exists.
-    pub fn insert_guild(&self, shard: u64, guild_id: GuildId, new: Arc<Guild>, metrics: &Metrics) -> Option<Arc<Guild>> {
+    pub fn insert_guild(
+        &self,
+        shard: u64,
+        guild_id: GuildId,
+        new: Arc<Guild>,
+        metrics: &Metrics,
+    ) -> Option<Arc<Guild>> {
         trace!("Inserting guild {} into the cache", guild_id);
 
         // cleanup unavailable metric if needed
         if let Some(index) = self.unavailable_guilds.read().iter().position(|id| id == &guild_id) {
             self.unavailable_guilds.write().remove(index);
-            metrics.guilds.get_metric_with_label_values(&[&shard.to_string(), GuildCacheState::Unavailable.name()]).unwrap().dec();
+            metrics
+                .guilds
+                .get_metric_with_label_values(&[&shard.to_string(), GuildCacheState::Unavailable.name()])
+                .unwrap()
+                .dec();
         }
 
         // Insert the new guild
@@ -261,9 +287,12 @@ impl Cache {
             //One already existed, cleanup metrics and user cache
             self.cleanup_guild(shard, old_guild, metrics);
         } else {
-            metrics.guilds.get_metric_with_label_values(&[&shard.to_string(), GuildCacheState::Created.name()]).unwrap().inc();
+            metrics
+                .guilds
+                .get_metric_with_label_values(&[&shard.to_string(), GuildCacheState::Created.name()])
+                .unwrap()
+                .inc();
         }
-
 
         old
     }
@@ -283,11 +312,15 @@ impl Cache {
         } else {
             (None, None)
         }
-
-
     }
 
-    pub fn remove_guild(&self, shard: u64, guild_id: GuildId, unavailable: bool, metrics: &Metrics) -> Option<Arc<Guild>> {
+    pub fn remove_guild(
+        &self,
+        shard: u64,
+        guild_id: GuildId,
+        unavailable: bool,
+        metrics: &Metrics,
+    ) -> Option<Arc<Guild>> {
         let old = self.guilds.write().remove(&guild_id);
 
         if let Some(guild) = &old {
@@ -296,13 +329,15 @@ impl Cache {
 
         if unavailable {
             self.unavailable_guilds.write().push(guild_id);
-            metrics.guilds.get_metric_with_label_values(&[&shard.to_string(), GuildCacheState::Unavailable.name()]).unwrap().inc();
+            metrics
+                .guilds
+                .get_metric_with_label_values(&[&shard.to_string(), GuildCacheState::Unavailable.name()])
+                .unwrap()
+                .inc();
         }
-
 
         old
     }
-
 
     /// Cleanup global user cache after guild removal.
     /// Also remove it from the guild cache state counter, the caller is responsible for increasing
@@ -332,7 +367,11 @@ impl Cache {
             metrics.members.sub(guild.members.read().len() as i64);
             metrics.users.sub(to_purge.len() as i64);
         }
-        metrics.guilds.get_metric_with_label_values(&[&shard.to_string(), guild.cache_state.read().name()]).unwrap().dec();
+        metrics
+            .guilds
+            .get_metric_with_label_values(&[&shard.to_string(), guild.cache_state.read().name()])
+            .unwrap()
+            .dec();
     }
 
     pub fn get_guild(&self, guild_id: &GuildId) -> Option<Arc<Guild>> {

@@ -1,14 +1,14 @@
-use std::sync::Arc;
-use num_format::{Locale, ToFormattedString};
-use twilight_embed_builder::EmbedBuilder;
-use crate::BotContext;
 use crate::communication::interaction::InteractionResult;
 use crate::util::error::InteractionError;
+use crate::BotContext;
+use num_format::{Locale, ToFormattedString};
+use std::sync::Arc;
+use twilight_embed_builder::EmbedBuilder;
 
 // this is a debug command, no need to bother with translations
 pub async fn run(component: &str, token: &str, context: &Arc<BotContext>) -> InteractionResult {
     match component {
-        "cache" =>{
+        "cache" => {
             let mut guilds = 0;
             let mut members = 0;
             let mut channels = 0;
@@ -17,12 +17,11 @@ pub async fn run(component: &str, token: &str, context: &Arc<BotContext>) -> Int
             let users = context.cache.get_user_count();
 
             context.cache.for_each_guild(|_, guild| {
-                guilds +=1;
+                guilds += 1;
                 members += guild.get_member_count();
                 channels += guild.get_channel_count();
                 emoji += guild.get_emoji_count();
                 roles += guild.get_role_count()
-
             });
             //TODO: use actual locale later
             let locale = Locale::nl_BE;
@@ -44,8 +43,8 @@ pub async fn run(component: &str, token: &str, context: &Arc<BotContext>) -> Int
                 )
                 .exec()
                 .await?;
-        },
-        wrong => return Err(InteractionError::InvalidOption(wrong.to_string()))
+        }
+        wrong => return Err(InteractionError::InvalidOption(wrong.to_string())),
     }
     Ok(())
 }

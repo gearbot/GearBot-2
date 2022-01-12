@@ -1,14 +1,16 @@
-use std::sync::Arc;
-use twilight_model::application::interaction::application_command::{CommandData, CommandDataOption, CommandOptionValue};
+use crate::util::CommandError;
+use crate::State;
 use actix_web::HttpResponse;
 use chrono::Utc;
+use std::sync::Arc;
 use tracing::error;
 use twilight_model::application::callback::InteractionResponse;
-use crate::util::CommandError;
+use twilight_model::application::interaction::application_command::{
+    CommandData, CommandDataOption, CommandOptionValue,
+};
 use twilight_model::application::interaction::ApplicationCommand;
-use twilight_util::builder::CallbackDataBuilder;
 use twilight_model::channel::message::MessageFlags;
-use crate::State;
+use twilight_util::builder::CallbackDataBuilder;
 
 mod debug;
 mod ping;
@@ -30,13 +32,13 @@ impl Commands {
         match data.name.as_str() {
             "ping" => Some(Self::PING),
             "debug" => Some(Self::DEBUG),
-            _ => None
+            _ => None,
         }
     }
 
     fn has_subcommands(&self) -> bool {
         match self {
-            _ => false
+            _ => false,
         }
     }
 
@@ -44,24 +46,34 @@ impl Commands {
         unreachable!()
     }
 
-    fn execute(&self, command: &Box<ApplicationCommand>, options: &Vec<CommandDataOption>, state: &Arc<State>) -> CommandResult {
+    fn execute(
+        &self,
+        command: &Box<ApplicationCommand>,
+        options: &Vec<CommandDataOption>,
+        state: &Arc<State>,
+    ) -> CommandResult {
         match self {
             Commands::PING => defer_async(false),
-            Commands::DEBUG => defer_async(false)
+            Commands::DEBUG => defer_async(false),
         }
     }
 
     fn get_name(&self) -> &str {
         match self {
             Commands::PING => "ping",
-            Commands::DEBUG => "debug"
+            Commands::DEBUG => "debug",
         }
     }
 
-    async fn async_followup(self, command: Box<ApplicationCommand>, options: Vec<CommandDataOption>, state: &Arc<State>) -> Result<(), CommandError> {
+    async fn async_followup(
+        self,
+        command: Box<ApplicationCommand>,
+        options: Vec<CommandDataOption>,
+        state: &Arc<State>,
+    ) -> Result<(), CommandError> {
         match self {
             Commands::PING => ping::async_followup(command, state).await?,
-            Commands::DEBUG => debug::async_followup(command, state).await?
+            Commands::DEBUG => debug::async_followup(command, state).await?,
         };
         Ok(())
     }
@@ -92,7 +104,10 @@ pub async fn handle_command(interaction: Box<ApplicationCommand>, state: Arc<Sta
                     error!("Command '{}' claimed to have subcommands, but failed to parse into an actual subcommand to execute ({:?})", to_execute.get_name(), &local_option)
                 }
             } else {
-                error!("Command '{}' claimed to have subcommands but no options where received from discord!", to_execute.get_name());
+                error!(
+                    "Command '{}' claimed to have subcommands but no options where received from discord!",
+                    to_execute.get_name()
+                );
                 return HttpResponse::BadRequest().body("");
             }
         }
@@ -105,31 +120,45 @@ pub async fn handle_command(interaction: Box<ApplicationCommand>, state: Arc<Sta
         let duration = Utc::now() - start;
         let observation = (duration.num_microseconds().unwrap_or(i64::MAX) as f64) / 1_000_000f64;
 
-
         let (response, followup, status) = match result {
-            Ok(reply) => {
-                (reply.response, reply.followup, "COMPLETED")
-            }
+            Ok(reply) => (reply.response, reply.followup, "COMPLETED"),
             Err(error) => {
                 if !error.is_user_error() {
-                    error!("Failed to handle interaction: {} (interaction data: {:?})", error.get_log_error(), &interaction);
+                    error!(
+                        "Failed to handle interaction: {} (interaction data: {:?})",
+                        error.get_log_error(),
+                        &interaction
+                    );
                 }
                 (
                     InteractionResponse::ChannelMessageWithSource(
                         CallbackDataBuilder::new()
                             .content("Something went wrong!".to_string())
                             .flags(MessageFlags::EPHEMERAL)
-                            .build()
+                            .build(),
                     ),
                     false,
-                    if error.is_user_error() { "USER_ERROR" } else { "SYSTEM_ERROR" }
+                    if error.is_user_error() {
+                        "USER_ERROR"
+                    } else {
+                        "SYSTEM_ERROR"
+                    },
                 )
             }
         };
 
-        state.metrics.command_durations.get_metric_with_label_values(&[&name, status]).unwrap().observe(observation);
-        state.metrics.command_totals.get_metric_with_label_values(&[&name, status]).unwrap().inc();
-
+        state
+            .metrics
+            .command_durations
+            .get_metric_with_label_values(&[&name, status])
+            .unwrap()
+            .observe(observation);
+        state
+            .metrics
+            .command_totals
+            .get_metric_with_label_values(&[&name, status])
+            .unwrap()
+            .inc();
 
         if followup {
             let token = interaction.token.clone();
@@ -150,12 +179,16 @@ pub async fn handle_command(interaction: Box<ApplicationCommand>, state: Arc<Sta
                         };
 
                         // send an error followup to the requester
-                        if let Err(e) = state.discord_client.create_followup_message(&token).unwrap()
+                        if let Err(e) = state
+                            .discord_client
+                            .create_followup_message(&token)
+                            .unwrap()
                             //TODO: replace with actual lang once available
                             .content(&e.get_user_error(&state.translator, "en_us"))
                             .ephemeral(true)
                             .exec()
-                            .await {
+                            .await
+                        {
                             error!("Failed to inform that something went wrong: {}", e)
                         }
 
@@ -163,15 +196,28 @@ pub async fn handle_command(interaction: Box<ApplicationCommand>, state: Arc<Sta
                     }
                 };
 
-                state.metrics.command_followups_duration.get_metric_with_label_values(&[&name, status]).unwrap().observe(observation);
-                state.metrics.command_followups_total.get_metric_with_label_values(&[&name, status]).unwrap().inc();
+                state
+                    .metrics
+                    .command_followups_duration
+                    .get_metric_with_label_values(&[&name, status])
+                    .unwrap()
+                    .observe(observation);
+                state
+                    .metrics
+                    .command_followups_total
+                    .get_metric_with_label_values(&[&name, status])
+                    .unwrap()
+                    .inc();
             });
         }
 
         let body = serde_json::to_string(&response).expect("InteractionResponse can't be converted to json anymore!");
         HttpResponse::Ok().body(body)
     } else {
-        error!("Received a command to execute from discord that can't be mapped to an internal command handler! {}", interaction.data.name);
+        error!(
+            "Received a command to execute from discord that can't be mapped to an internal command handler! {}",
+            interaction.data.name
+        );
         HttpResponse::BadRequest().body("")
     }
 }
@@ -182,15 +228,12 @@ fn defer_async(ephemeral: bool) -> CommandResult {
     } else {
         MessageFlags::empty()
     };
-    Ok(
-        Reply {
-            response:
-            InteractionResponse::DeferredChannelMessageWithSource(
-                CallbackDataBuilder::new().flags(flags).build()
-            ),
-            followup: true,
-        }
-    )
+    Ok(Reply {
+        response: InteractionResponse::DeferredChannelMessageWithSource(
+            CallbackDataBuilder::new().flags(flags).build(),
+        ),
+        followup: true,
+    })
 }
 
 pub fn get_required_string_value<'a>(name: &str, options: &'a Vec<CommandDataOption>) -> Result<&'a str, CommandError> {
@@ -201,11 +244,9 @@ pub fn get_optional_string_value<'a>(name: &str, options: &'a Vec<CommandDataOpt
     for option in options {
         if option.name == name {
             return match &option.value {
-                CommandOptionValue::String(value) => {
-                    Some(value)
-                }
-                _ => None
-            }
+                CommandOptionValue::String(value) => Some(value),
+                _ => None,
+            };
         }
     }
 

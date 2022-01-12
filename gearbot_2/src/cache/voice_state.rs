@@ -14,17 +14,15 @@ pub struct VoiceState {
 impl VoiceState {
     pub fn from_state(state: TwilightVoiceState) -> Option<Self> {
         if state.channel_id.is_some() {
-            Some(
-                VoiceState {
-                    connected_to: state.channel_id.unwrap(),
-                    muted: state.self_mute,
-                    server_muted: state.mute,
-                    deafened: state.self_deaf,
-                    server_deafened: state.deaf,
-                    video: state.self_video,
-                    streaming: state.self_stream,
-                }
-            )
+            Some(VoiceState {
+                connected_to: state.channel_id.unwrap(),
+                muted: state.self_mute,
+                server_muted: state.mute,
+                deafened: state.self_deaf,
+                server_deafened: state.deaf,
+                video: state.self_video,
+                streaming: state.self_stream,
+            })
         } else {
             None
         }

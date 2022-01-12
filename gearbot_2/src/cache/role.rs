@@ -1,8 +1,8 @@
+use crate::Cache;
 use std::sync::Arc;
 use tracing::error;
 use twilight_model::guild::{Permissions, Role as TwilightRole};
 use twilight_model::id::{GuildId, RoleId};
-use crate::Cache;
 
 pub struct Role {
     // cache role id as well since we need it for role ordering
@@ -14,7 +14,7 @@ pub struct Role {
     pub emoji: Option<String>,
     pub position: i64,
     pub permissions: Permissions,
-    pub managed: bool
+    pub managed: bool,
 }
 
 impl Role {
@@ -28,13 +28,12 @@ impl Role {
             emoji: role.unicode_emoji,
             position: role.position,
             permissions: role.permissions,
-            managed: role.managed
+            managed: role.managed,
         }
     }
 }
 
 impl Cache {
-
     pub fn insert_role(&self, guild_id: &GuildId, role: Arc<Role>) -> Option<Arc<Role>> {
         if let Some(guild) = self.guilds.read().get(guild_id) {
             guild.insert_role(role)
@@ -44,7 +43,7 @@ impl Cache {
         }
     }
 
-    pub fn remove_role(&self, guild_id: &GuildId, role_id:& RoleId) -> Option<Arc<Role>> {
+    pub fn remove_role(&self, guild_id: &GuildId, role_id: &RoleId) -> Option<Arc<Role>> {
         if let Some(guild) = self.guilds.read().get(guild_id) {
             guild.remove_role(role_id)
         } else {
@@ -52,5 +51,4 @@ impl Cache {
             None
         }
     }
-
 }

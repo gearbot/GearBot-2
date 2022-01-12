@@ -1,20 +1,20 @@
-use actix_web::{Responder, HttpResponse, HttpServer, web, get, App};
-use std::env;
-use std::sync::Arc;
-use ring::signature;
-use ring::signature::UnparsedPublicKey;
-use twilight_http::Client;
-use gearbot_2_lib::translations::Translator;
-use actix_web::middleware::{DefaultHeaders, Logger};
-use tracing::info;
-use gearbot_2_lib::kafka::sender::KafkaSender;
-use gearbot_2_lib::util::get_twilight_client;
 use crate::middleware::{expose_metrics, PrometheusMetrics};
 use crate::util::Metrics;
+use actix_web::middleware::{DefaultHeaders, Logger};
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use gearbot_2_lib::kafka::sender::KafkaSender;
+use gearbot_2_lib::translations::Translator;
+use gearbot_2_lib::util::get_twilight_client;
+use ring::signature;
+use ring::signature::UnparsedPublicKey;
+use std::env;
+use std::sync::Arc;
+use tracing::info;
+use twilight_http::Client;
 
 mod interactions;
-pub mod util;
 mod middleware;
+pub mod util;
 
 #[get("")]
 async fn hello() -> impl Responder {
@@ -29,7 +29,6 @@ pub struct State {
     pub kafka_sender: KafkaSender,
 }
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -38,8 +37,9 @@ async fn main() -> std::io::Result<()> {
     // reading env variables
     let hex_signature = env::var("PUBLIC_KEY").expect("Missing PUBLIC_KEY env variable!");
 
-
-    let client = get_twilight_client().await.expect("Failed to construct twilight http client");
+    let client = get_twilight_client()
+        .await
+        .expect("Failed to construct twilight http client");
 
     let decoded_signature = hex::decode(hex_signature).expect("Failed to decode PUBLIC_KEY");
     let public_key = signature::UnparsedPublicKey::new(&signature::ED25519, decoded_signature);
@@ -65,17 +65,18 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 DefaultHeaders::new()
                     .add(("X-Version", env!("CARGO_PKG_VERSION")))
-                    .add(("Content-Type", "application/json")))
-            .service(web::scope(&root_path)
-                .app_data(state.clone())
-                .service(hello)
-                .service(interactions::handle_interactions)
-                .service(expose_metrics)
+                    .add(("Content-Type", "application/json")),
+            )
+            .service(
+                web::scope(&root_path)
+                    .app_data(state.clone())
+                    .service(hello)
+                    .service(interactions::handle_interactions)
+                    .service(expose_metrics),
             )
     })
-        .keep_alive(90)
-        .bind("0.0.0.0:4000")?
-        .run()
-        .await
-
+    .keep_alive(90)
+    .bind("0.0.0.0:4000")?
+    .run()
+    .await
 }

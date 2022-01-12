@@ -1,14 +1,14 @@
+use crate::translations::GearBotLangKey;
+use fluent_bundle::{bundle::FluentBundle as RawBundle, FluentArgs, FluentMessage, FluentResource, FluentValue};
+use intl_memoizer::concurrent::IntlLangMemoizer;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::sync::Arc;
-use fluent_bundle::{FluentArgs, FluentMessage, FluentResource, FluentValue, {bundle::FluentBundle as RawBundle}};
-use intl_memoizer::concurrent::IntlLangMemoizer;
 use tracing::{debug, error, info, trace, warn};
 use unic_langid::LanguageIdentifier;
-use crate::translations::GearBotLangKey;
 
 const FAILED_TRANSLATE_FALLBACK_MSG: &str =
     "Translation failure occurred: unable to localise '{}'. This is a bug and has been logged as such.";
@@ -34,7 +34,8 @@ impl Translator {
     pub fn new(lang_dir: &str, master_lang: String) -> Translator {
         info!("Loading translations...");
 
-        let translation_dir = fs::read_dir(lang_dir).expect(&format!("Unable to read translations directory '{}'", lang_dir));
+        let translation_dir =
+            fs::read_dir(lang_dir).expect(&format!("Unable to read translations directory '{}'", lang_dir));
 
         let mut translations = HashMap::new();
 
@@ -42,7 +43,11 @@ impl Translator {
         for child_result in translation_dir {
             let child = child_result.expect("Failed to get directory metadata");
             let dir_name = child.file_name().to_string_lossy().to_string();
-            if !child.file_type().expect(&format!("Unable to determine filetype of '{}'", dir_name)).is_dir() {
+            if !child
+                .file_type()
+                .expect(&format!("Unable to determine filetype of '{}'", dir_name))
+                .is_dir()
+            {
                 warn!("Ignoring '{}' as it's not a directory", dir_name);
                 continue;
             }
@@ -74,14 +79,17 @@ impl Translator {
                         let resource = FluentResource::try_new(line.clone());
 
                         match resource {
-                            Ok(resource) =>
-                                {
-                                    bundle.add_resource(resource).expect(&format!("Failed to add entry to the bundle: {}", &line));
-                                }
-                            Err(e) =>
-                                {
-                                    error!("Corrupt entry encountered in file {} from lang {}: {:?} ({})", file_name, dir_name, e.1, line);
-                                }
+                            Ok(resource) => {
+                                bundle
+                                    .add_resource(resource)
+                                    .expect(&format!("Failed to add entry to the bundle: {}", &line));
+                            }
+                            Err(e) => {
+                                error!(
+                                    "Corrupt entry encountered in file {} from lang {}: {:?} ({})",
+                                    file_name, dir_name, e.1, line
+                                );
+                            }
                         }
                     }
                 }
@@ -95,7 +103,10 @@ impl Translator {
         info!("Successfully loaded {} languages", translations.len());
 
         if !translations.contains_key(&master_lang) {
-            panic!("{} was designated as master language, but no translations where provided for this language!", master_lang)
+            panic!(
+                "{} was designated as master language, but no translations where provided for this language!",
+                master_lang
+            )
         }
 
         Translator {
@@ -110,15 +121,25 @@ impl Translator {
         let (translations, lang) = if let Some(translations) = self.translations.get(lang) {
             (translations, lang)
         } else {
-            debug!("Attempted to translate to unknown lang {}, falling back to {}", lang, self.master_lang);
+            debug!(
+                "Attempted to translate to unknown lang {}, falling back to {}",
+                lang, self.master_lang
+            );
             //safe to unwrap, we ensured this is present during initialization
-            (self.translations.get(&self.master_lang).unwrap(), self.master_lang.as_str())
+            (
+                self.translations.get(&self.master_lang).unwrap(),
+                self.master_lang.as_str(),
+            )
         };
         let mut message = translations.get_message(translation_key);
 
         // not found, try the master language if we where not already using that
         if message.is_none() && lang != &self.master_lang {
-            message = self.translations.get(&self.master_lang).unwrap().get_message(translation_key);
+            message = self
+                .translations
+                .get(&self.master_lang)
+                .unwrap()
+                .get_message(translation_key);
         }
 
         MessageTranslator {
@@ -132,11 +153,12 @@ impl Translator {
 
 impl<'a> MessageTranslator<'a> {
     pub fn arg<P>(mut self, key: &'a str, value: P) -> Self
-        where P: Into<FluentValue<'a>>
+    where
+        P: Into<FluentValue<'a>>,
     {
         let mut args = match self.args {
             None => FluentArgs::new(),
-            Some(args) => args
+            Some(args) => args,
         };
         args.set(key, value.into());
         self.args = Some(args);
@@ -152,17 +174,22 @@ impl<'a> MessageTranslator<'a> {
                 Cow::Borrowed(FAILED_TRANSLATE_FALLBACK_MSG)
             }
             Some(message) => {
-                let translated = self.bundle.format_pattern(message.value().unwrap(), self.args.as_ref(), &mut errors);
+                let translated = self
+                    .bundle
+                    .format_pattern(message.value().unwrap(), self.args.as_ref(), &mut errors);
 
                 if errors.is_empty() {
                     translated
                 } else {
-                    error!("Translation failure(s) when translating {} with args {:?}: {:?}", self.key.as_str(), self.args, errors);
+                    error!(
+                        "Translation failure(s) when translating {} with args {:?}: {:?}",
+                        self.key.as_str(),
+                        self.args,
+                        errors
+                    );
                     Cow::Borrowed(FAILED_TRANSLATE_FALLBACK_MSG)
                 }
             }
         }
-
-
     }
 }
