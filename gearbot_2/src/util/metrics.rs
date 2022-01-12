@@ -1,8 +1,8 @@
-use std::collections::HashMap;
-use std::sync::Arc;
+use crate::BotContext;
 use actix_web::{HttpRequest, HttpResponse, Responder};
 use prometheus::{Encoder, IntCounterVec, IntGauge, IntGaugeVec, Opts, Registry, TextEncoder};
-use crate::BotContext;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 pub struct Metrics {
     pub registry: Registry,
@@ -24,13 +24,22 @@ impl Metrics {
         labels.insert("cluster".to_string(), cluster.to_string());
         let registry = Registry::new_custom(Some("gearbot".to_string()), Some(labels)).unwrap();
 
-        let gateway_events = IntCounterVec::new(Opts::new("gateway_events", "Received gateway events"), &["shard", "event"]).unwrap();
+        let gateway_events = IntCounterVec::new(
+            Opts::new("gateway_events", "Received gateway events"),
+            &["shard", "event"],
+        )
+        .unwrap();
         registry.register(Box::new(gateway_events.clone())).unwrap();
 
-        let shard_states = IntGaugeVec::new(Opts::new("shard_states", "States of the shards"), &["shard", "state"]).unwrap();
+        let shard_states =
+            IntGaugeVec::new(Opts::new("shard_states", "States of the shards"), &["shard", "state"]).unwrap();
         registry.register(Box::new(shard_states.clone())).unwrap();
 
-        let guilds = IntGaugeVec::new(Opts::new("guilds", "Cached guilds per shard and cache state"), &["shard", "state"]).unwrap();
+        let guilds = IntGaugeVec::new(
+            Opts::new("guilds", "Cached guilds per shard and cache state"),
+            &["shard", "state"],
+        )
+        .unwrap();
         registry.register(Box::new(guilds.clone())).unwrap();
 
         let members = IntGauge::new("members", "Total cached members").unwrap();
@@ -49,14 +58,17 @@ impl Metrics {
             guilds,
             members,
             users,
-            status
+            status,
         }
     }
 
     pub fn recalculate_shard_states(&self, state: &Arc<BotContext>) {
         self.shard_states.reset();
         for (shard_id, info) in state.cluster.info() {
-            self.shard_states.get_metric_with_label_values(&[&shard_id.to_string(), &info.stage().to_string()]).unwrap().inc();
+            self.shard_states
+                .get_metric_with_label_values(&[&shard_id.to_string(), &info.stage().to_string()])
+                .unwrap()
+                .inc();
         }
     }
 }

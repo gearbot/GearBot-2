@@ -1,11 +1,11 @@
-use std::sync::Arc;
-use std::sync::atomic::Ordering;
+use crate::cache::User;
 use parking_lot::RwLock;
+use std::sync::atomic::Ordering;
+use std::sync::Arc;
 use twilight_model::datetime::Timestamp;
 use twilight_model::gateway::payload::incoming::MemberUpdate;
-use twilight_model::id::RoleId;
 use twilight_model::guild::Member as TwilightMember;
-use crate::cache::User;
+use twilight_model::id::RoleId;
 
 pub struct Member {
     user: RwLock<Arc<User>>,
@@ -70,7 +70,7 @@ impl Member {
         self.nickname != member.nick
             || self.avatar != member.avatar
             || self.pending != member.pending
-             || self.communication_disabled_until != member.communication_disabled_until
+            || self.communication_disabled_until != member.communication_disabled_until
             || self.roles.len() != member.roles.len()
             || self.roles != member.roles
     }

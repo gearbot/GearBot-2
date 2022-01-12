@@ -1,7 +1,7 @@
+use crate::cache::Role;
+use crate::BotContext;
 use std::sync::Arc;
 use twilight_model::gateway::payload::incoming::{RoleCreate, RoleDelete, RoleUpdate};
-use crate::BotContext;
-use crate::cache::Role;
 
 pub fn on_role_create(role_create: RoleCreate, context: &Arc<BotContext>) {
     let new: Arc<Role> = Arc::new(Role::from_role(role_create.role));

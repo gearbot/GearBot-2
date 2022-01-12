@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use crate::cache::Guild;
+use crate::Cache;
 use std::sync::atomic::{AtomicU8, Ordering};
+use std::sync::Arc;
 use tracing::trace;
 use twilight_model::id::{GuildId, UserId};
-use twilight_model::user::{UserFlags, User as TwilightUser};
-use crate::Cache;
-use crate::cache::Guild;
+use twilight_model::user::{User as TwilightUser, UserFlags};
 
 pub struct User {
     pub name: String,
@@ -21,7 +21,9 @@ pub struct User {
 
 impl User {
     pub fn assemble(user: TwilightUser, old: Option<Arc<User>>) -> Self {
-        let mutual_servers = old.map(|user| AtomicU8::new(user.mutual_guilds.load(Ordering::SeqCst))).unwrap_or_else(|| AtomicU8::new(0));
+        let mutual_servers = old
+            .map(|user| AtomicU8::new(user.mutual_guilds.load(Ordering::SeqCst)))
+            .unwrap_or_else(|| AtomicU8::new(0));
 
         User {
             name: user.name,
@@ -29,16 +31,16 @@ impl User {
             avatar: user.avatar,
             bot: user.bot,
             flags: user.public_flags.unwrap_or_else(UserFlags::empty),
-            mutual_guilds: mutual_servers
+            mutual_guilds: mutual_servers,
         }
     }
 
     // some properties can't change so only check those that could have been changed
-    pub fn is_updated(&self, user: &TwilightUser) -> bool{
+    pub fn is_updated(&self, user: &TwilightUser) -> bool {
         self.name != user.name
-        || self.discriminator != user.discriminator
-        || self.avatar != user.avatar
-        || self.flags != user.public_flags.unwrap_or_else(UserFlags::empty)
+            || self.discriminator != user.discriminator
+            || self.avatar != user.avatar
+            || self.flags != user.public_flags.unwrap_or_else(UserFlags::empty)
     }
 }
 
@@ -70,7 +72,7 @@ impl Cache {
     }
 
     pub fn for_each_guild(&self, mut todo: impl FnMut(&GuildId, &Arc<Guild>)) {
-        for (guild_id, guild) in self.guilds.read().iter(){
+        for (guild_id, guild) in self.guilds.read().iter() {
             todo(guild_id, guild);
         }
     }
