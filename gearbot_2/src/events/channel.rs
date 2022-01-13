@@ -43,7 +43,7 @@ pub fn cache_channel_delete(
     channel_id: &ChannelId,
     context: &Arc<BotContext>,
 ) -> Option<Arc<Channel>> {
-    return context.cache.remove_channel(&guild_id, channel_id);
+    context.cache.remove_channel(guild_id, channel_id)
 }
 
 pub fn on_channel_update(channel: TwilightChannel, context: &Arc<BotContext>) {

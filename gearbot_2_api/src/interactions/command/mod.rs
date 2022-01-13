@@ -25,23 +25,21 @@ pub struct Reply {
 pub type CommandResult = Result<Reply, CommandError>;
 
 pub enum Commands {
-    PING,
-    DEBUG,
+    Ping,
+    Debug,
 }
 
 impl Commands {
     pub fn parse(data: &CommandData) -> Option<Self> {
         match data.name.as_str() {
-            "ping" => Some(Self::PING),
-            "debug" => Some(Self::DEBUG),
+            "ping" => Some(Self::Ping),
+            "debug" => Some(Self::Debug),
             _ => None,
         }
     }
 
     fn has_subcommands(&self) -> bool {
-        match self {
-            _ => false,
-        }
+        false
     }
 
     fn parse_into_subcommand(&self, _data: &CommandDataOption) -> Option<Commands> {
@@ -50,32 +48,32 @@ impl Commands {
 
     fn execute(
         &self,
-        _command: &Box<ApplicationCommand>,
-        _options: &Vec<CommandDataOption>,
+        _command: &ApplicationCommand,
+        _options: &[CommandDataOption],
         _state: &Arc<State>,
     ) -> CommandResult {
         match self {
-            Commands::PING => defer_async(false),
-            Commands::DEBUG => defer_async(false),
+            Commands::Ping => defer_async(false),
+            Commands::Debug => defer_async(false),
         }
     }
 
     fn get_name(&self) -> &str {
         match self {
-            Commands::PING => "ping",
-            Commands::DEBUG => "debug",
+            Commands::Ping => "ping",
+            Commands::Debug => "debug",
         }
     }
 
     async fn async_followup(
         self,
         command: Box<ApplicationCommand>,
-        options: Vec<CommandDataOption>,
+        _options: Vec<CommandDataOption>,
         state: &Arc<State>,
     ) -> Result<(), CommandError> {
         match self {
-            Commands::PING => ping::async_followup(command, state).await?,
-            Commands::DEBUG => debug::async_followup(command, state).await?,
+            Commands::Ping => ping::async_followup(command, state).await?,
+            Commands::Debug => debug::async_followup(command, state).await?,
         };
         Ok(())
     }
@@ -238,11 +236,11 @@ fn defer_async(ephemeral: bool) -> CommandResult {
     })
 }
 
-pub fn get_required_string_value<'a>(name: &str, options: &'a Vec<CommandDataOption>) -> Result<&'a str, CommandError> {
+pub fn get_required_string_value<'a>(name: &'a str, options: &'a [CommandDataOption]) -> Result<&'a str, CommandError> {
     get_optional_string_value(name, options).ok_or_else(|| CommandError::MissingOption(name.to_string()))
 }
 
-pub fn get_optional_string_value<'a>(name: &str, options: &'a Vec<CommandDataOption>) -> Option<&'a str> {
+pub fn get_optional_string_value<'a>(name: &str, options: &'a [CommandDataOption]) -> Option<&'a str> {
     for option in options {
         if option.name == name {
             return match &option.value {

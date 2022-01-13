@@ -9,8 +9,8 @@ pub fn on_voice_state_update(update: TwilightVoiceState, context: &Arc<BotContex
     if let Some(guild_id) = update.guild_id {
         if let Some(guild) = context.cache.get_guild(&guild_id) {
             let user_id = update.user_id;
-            let new = VoiceState::from_state(update).map(|state| Arc::new(state));
-            let _old = guild.set_voice_state(user_id, new.clone());
+            let new = VoiceState::from_state(update).map(Arc::new);
+            let _old = guild.set_voice_state(user_id, new);
         }
     }
 }

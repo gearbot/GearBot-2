@@ -26,7 +26,8 @@ pub struct Cache {
 }
 
 impl Cache {
-    pub fn new() -> Self {
+    #[allow(clippy::new_without_default)]
+    pub fn new_cache() -> Self {
         Cache {
             guilds: Default::default(),
             unavailable_guilds: Default::default(),

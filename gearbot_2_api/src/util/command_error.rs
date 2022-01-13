@@ -18,10 +18,7 @@ pub enum CommandError {
 impl CommandError {
     // User errors are issues with user input and not logged as errors
     pub fn is_user_error(&self) -> bool {
-        match self {
-            self::CommandError::MissingOption(_) => true,
-            _ => false,
-        }
+        matches!(self, self::CommandError::MissingOption(_))
     }
 
     //Error to show to the user

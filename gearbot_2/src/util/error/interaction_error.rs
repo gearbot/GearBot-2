@@ -14,13 +14,7 @@ pub enum InteractionError {
 
 impl InteractionError {
     pub fn is_user_error(&self) -> bool {
-        match self {
-            InteractionError::Twilight(_) => false,
-            InteractionError::Embed(_) => false,
-            InteractionError::Datastore(_) => false,
-            InteractionError::Serde(_) => false,
-            _ => true,
-        }
+        matches!(self, InteractionError::InvalidOption(_))
     }
 
     //Error to show to the user

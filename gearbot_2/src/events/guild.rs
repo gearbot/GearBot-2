@@ -75,7 +75,7 @@ pub fn on_member_chunk(shard: u64, chunk: MemberChunk, context: &Arc<BotContext>
                     Member::assemble(member, user)
                 } else {
                     let member = Member::convert_with_user(member, None);
-                    new_users.push((uid, member.user().clone()));
+                    new_users.push((uid, member.user()));
                     member
                 };
                 (uid, Arc::new(member))
@@ -187,7 +187,7 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
             if (guild_id.get() >> 22) % context.cluster_info.total_shards == shard {
                 let state = guild.cache_state();
                 if state == GuildCacheState::Created || state == GuildCacheState::ReceivingMembers {
-                    unfinished_business.push(guild_id.clone())
+                    unfinished_business.push(*guild_id)
                 }
             }
         });

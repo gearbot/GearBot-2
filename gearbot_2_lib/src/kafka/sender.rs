@@ -12,6 +12,7 @@ use tracing::trace;
 
 pub struct KafkaSender(FutureProducer);
 
+#[allow(clippy::new_without_default)]
 impl KafkaSender {
     pub async fn send<T>(&self, destination: &str, payload: &T) -> Result<(), KafkaSenderError>
     where

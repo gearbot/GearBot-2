@@ -55,7 +55,7 @@ pub fn on_member_update(member_update: MemberUpdate, context: &Arc<BotContext>) 
                         handle_updated_user(user_id, old_user, &member.user(), context);
                         member
                     } else {
-                        Arc::new(Member::convert_update(member_update, Some(old_user.clone())))
+                        Arc::new(Member::convert_update(member_update, Some(old_user)))
                     };
                     guild.insert_member(user_id, new_member.clone());
                     let _new_user = new_member.user();
@@ -103,13 +103,13 @@ fn handle_updated_user(user_id: UserId, old_user: Arc<User>, new_user: &Arc<User
     context.cache.for_each_guild(|guild_id, guild| {
         if let Some(member) = guild.get_member(&user_id) {
             member.set_user(new_user.clone());
-            guild_list.push(guild_id.clone())
+            guild_list.push(*guild_id)
         }
     });
 
     tokio::spawn(log_updated_user(
         user_id,
-        old_user.clone(),
+        old_user,
         new_user.clone(),
         guild_list,
         context.clone(),

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::datastore::crypto::EncryptionKey;
-use crate::datastore::guild::guild_config::history::{LogStyle, MessageLogs, ModLog, V1Config};
+use crate::datastore::guild::config::history::{LogStyle, MessageLogs, ModLog, V1Config};
 use crate::datastore::guild::GuildConfigWrapper;
 
 pub struct GuildInfo {
