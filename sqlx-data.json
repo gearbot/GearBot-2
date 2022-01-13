@@ -1,15 +1,9 @@
 {
   "db": "PostgreSQL",
-  "1936f34153baaf82c4d14a4f0e5e9835e6c2606dd24ecf4f87ccfb7c616ce132": {
-    "query": "INSERT INTO guild_config (id, encryption_key, config) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING returning encryption_key",
+  "72b002a1d2326f4f77d5b63fa95edeb5a8cb3bc9d4adf0f7699fc1d0e537cd18": {
+    "query": "INSERT INTO guild_config (id, encryption_key, config) VALUES ($1, $2, $3)",
     "describe": {
-      "columns": [
-        {
-          "ordinal": 0,
-          "name": "encryption_key",
-          "type_info": "Bytea"
-        }
-      ],
+      "columns": [],
       "parameters": {
         "Left": [
           "Int8",
@@ -17,7 +11,94 @@
           "Jsonb"
         ]
       },
+      "nullable": []
+    }
+  },
+  "aa135cf98ec9f2d29301dc4269fb99d5cfda82ab03723b8b82f5427361eafa94": {
+    "query": "UPDATE guild_config SET left_at=null where id=$1 RETURNING id, version, config, encryption_key",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "version",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 2,
+          "name": "config",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "encryption_key",
+          "type_info": "Bytea"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      },
       "nullable": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  },
+  "aaece5cf9ff17f407e487f0751a6dc8115371d80a0d4d771ec1315ef7183aedd": {
+    "query": "UPDATE guild_config SET config=$1 WHERE id=$2",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Jsonb",
+          "Int8"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "f0e2058c39e259852cfc1b4b71db2b39d49e4c85e1bd5517e852ae3ba084c2b1": {
+    "query": "UPDATE guild_config SET left_at=null WHERE id IN (SELECT * FROM UNNEST ($1::bigint[])) RETURNING id, version, config, encryption_key",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "id",
+          "type_info": "Int8"
+        },
+        {
+          "ordinal": 1,
+          "name": "version",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 2,
+          "name": "config",
+          "type_info": "Jsonb"
+        },
+        {
+          "ordinal": 3,
+          "name": "encryption_key",
+          "type_info": "Bytea"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Int8Array"
+        ]
+      },
+      "nullable": [
+        false,
+        false,
+        false,
         false
       ]
     }
