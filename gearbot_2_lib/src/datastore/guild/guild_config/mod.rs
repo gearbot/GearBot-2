@@ -1,14 +1,15 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::FromRow;
 
-mod history;
-mod guild_config;
-
 pub use guild_config::GuildConfig;
 pub use guild_config::GuildInfo;
+
 use crate::datastore::crypto::EncryptionKey;
 use crate::datastore::guild::guild_config::history::V1Config;
+
+mod guild_config;
+mod history;
 
 /// The highest config version this application knows about and supports
 pub const CURRENT_CONFIG_VERSION: i32 = 2;
@@ -28,12 +29,10 @@ impl DatabaseGuildInfo {
 
     pub fn into_config_and_key(self) -> Result<GuildInfo, serde_json::Error> {
         let wrapper: GuildConfigWrapper = serde_json::from_value(self.config)?;
-        Ok(
-            GuildInfo {
-                config: wrapper.into_config(),
-                encryption_key: EncryptionKey::construct_owned(&self.encryption_key)
-            }
-        )
+        Ok(GuildInfo {
+            config: wrapper.into_config(),
+            encryption_key: EncryptionKey::construct_owned(&self.encryption_key),
+        })
     }
 }
 
@@ -54,7 +53,7 @@ impl GuildConfigWrapper {
                 GuildConfigWrapper::V2(config) => {
                     return config;
                 }
-                outdated => current = outdated.migrate()
+                outdated => current = outdated.migrate(),
             }
         }
     }
@@ -62,7 +61,7 @@ impl GuildConfigWrapper {
     fn migrate(self) -> Self {
         match self {
             GuildConfigWrapper::V1(inner) => GuildConfigWrapper::V2(inner.into()),
-            _ => panic!("Tried to migrate a fully migrated config!")
+            _ => panic!("Tried to migrate a fully migrated config!"),
         }
     }
 }

@@ -23,7 +23,7 @@ impl GearBotLangKey {
             GearBotLangKey::GenericSystemError => "generic_system_error",
             GearBotLangKey::MissingRequiredOption => "missing_required_option",
             GearBotLangKey::InvalidOption => "invalid_option",
-            GearBotLangKey::DebugLocalization => "debug_localization"
+            GearBotLangKey::DebugLocalization => "debug_localization",
         }
     }
 }

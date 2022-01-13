@@ -1,5 +1,7 @@
 use std::sync::Arc;
+
 use twilight_model::gateway::payload::incoming::GuildEmojisUpdate;
+
 use crate::util::bot_context::BotContext;
 
 pub fn on_emoji_update(emoji_update: GuildEmojisUpdate, context: &Arc<BotContext>) {
