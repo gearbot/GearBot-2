@@ -1,8 +1,7 @@
-use crate::util::CommandError;
-use crate::State;
+use std::sync::Arc;
+
 use actix_web::HttpResponse;
 use chrono::Utc;
-use std::sync::Arc;
 use tracing::error;
 use twilight_model::application::callback::InteractionResponse;
 use twilight_model::application::interaction::application_command::{
@@ -11,6 +10,9 @@ use twilight_model::application::interaction::application_command::{
 use twilight_model::application::interaction::ApplicationCommand;
 use twilight_model::channel::message::MessageFlags;
 use twilight_util::builder::CallbackDataBuilder;
+
+use crate::util::CommandError;
+use crate::State;
 
 mod debug;
 mod ping;
@@ -42,15 +44,15 @@ impl Commands {
         }
     }
 
-    fn parse_into_subcommand(&self, data: &CommandDataOption) -> Option<Commands> {
+    fn parse_into_subcommand(&self, _data: &CommandDataOption) -> Option<Commands> {
         unreachable!()
     }
 
     fn execute(
         &self,
-        command: &Box<ApplicationCommand>,
-        options: &Vec<CommandDataOption>,
-        state: &Arc<State>,
+        _command: &Box<ApplicationCommand>,
+        _options: &Vec<CommandDataOption>,
+        _state: &Arc<State>,
     ) -> CommandResult {
         match self {
             Commands::PING => defer_async(false),

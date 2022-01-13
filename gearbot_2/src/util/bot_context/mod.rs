@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 use std::env;
 use std::ops::Range;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 use parking_lot::RwLock;
 use tokio::sync::{OnceCell, SetError};
 use tokio::task::JoinHandle;
@@ -11,20 +12,19 @@ use twilight_gateway::Cluster;
 use twilight_http::Client;
 use twilight_model::id::GuildId;
 use uuid::Uuid;
-use gearbot_2_lib::datastore::Datastore;
-use gearbot_2_lib::datastore::guild::GuildInfo;
-use gearbot_2_lib::translations::Translator;
-use crate::cache::Cache;
-use crate::Metrics;
-use tokio::sync::RwLock as AsyncRwLock;
 
-mod status;
+use gearbot_2_lib::datastore::guild::GuildInfo;
+use gearbot_2_lib::datastore::Datastore;
+use gearbot_2_lib::translations::Translator;
+pub use status::BotStatus;
+
+use crate::cache::Cache;
+use crate::util::bot_context::cluster_info::ClusterInfo;
+use crate::Metrics;
+
 mod cluster_info;
 mod guilds;
-
-
-pub use status::BotStatus;
-use crate::util::bot_context::cluster_info::ClusterInfo;
+mod status;
 
 pub struct BotContext {
     pub translator: Translator,
@@ -49,10 +49,16 @@ pub struct BotContext {
     cached_guild_info: RwLock<HashMap<GuildId, Arc<GuildInfo>>>,
 }
 
-
-
 impl BotContext {
-    pub fn new(translator: Translator, client: Client, cluster: Cluster, datastore: Datastore, cluster_id: u16, shards: Range<u64>, total_shards: u64) -> Self {
+    pub fn new(
+        translator: Translator,
+        client: Client,
+        cluster: Cluster,
+        datastore: Datastore,
+        cluster_id: u16,
+        shards: Range<u64>,
+        total_shards: u64,
+    ) -> Self {
         let mut requested_guilds = HashMap::new();
         let mut pending_chunks = HashMap::new();
         for shard_id in shards.clone() {
@@ -60,8 +66,12 @@ impl BotContext {
             pending_chunks.insert(shard_id, AtomicBool::new(false));
         }
 
-        let metrics= Metrics::new(cluster_id);
-        metrics.status.get_metric_with_label_values(&[BotStatus::STARTING.name()]).unwrap().set(1);
+        let metrics = Metrics::new(cluster_id);
+        metrics
+            .status
+            .get_metric_with_label_values(&[BotStatus::STARTING.name()])
+            .unwrap()
+            .set(1);
         BotContext {
             translator,
             client,
@@ -75,14 +85,13 @@ impl BotContext {
                 cluster_id,
                 shards,
                 cluster_identifier: env::var("CLUSTER_IDENTIFIER").unwrap_or_else(|_| "gearbot".to_string()),
-                total_shards
+                total_shards,
             },
             uuid: Uuid::new_v4(),
             receiver_handle: Default::default(),
             datastore,
-            cached_guild_info: Default::default()
+            cached_guild_info: Default::default(),
         }
-
     }
 
     pub fn has_requested_guilds(&self, shard: &u64) -> bool {
@@ -92,7 +101,7 @@ impl BotContext {
     pub fn has_any_requested_guilds(&self) -> bool {
         for (shard, pending) in self.requested_guilds.iter() {
             if !pending.read().is_empty() || self.pending_chunks.get(shard).unwrap().load(Ordering::SeqCst) {
-                return true
+                return true;
             }
         }
         false
@@ -136,7 +145,10 @@ impl BotContext {
     }
 
     pub fn get_queue_topic(&self) -> String {
-        format!("{}_cluster_{}", self.cluster_info.cluster_identifier, self.cluster_info.cluster_id)
+        format!(
+            "{}_cluster_{}",
+            self.cluster_info.cluster_identifier, self.cluster_info.cluster_id
+        )
     }
 
     pub fn set_receiver_handle(&self, handle: JoinHandle<()>) -> Result<(), SetError<JoinHandle<()>>> {

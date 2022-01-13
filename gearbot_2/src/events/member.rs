@@ -1,10 +1,12 @@
 use std::sync::Arc;
+
 use tracing::{trace, warn};
 use twilight_model::gateway::payload::incoming::{MemberRemove, MemberUpdate};
 use twilight_model::guild::Member as TwilightMember;
 use twilight_model::id::{GuildId, UserId};
-use crate::cache::{Member, User};
+
 use crate::cache::guild::GuildCacheState;
+use crate::cache::{Member, User};
 use crate::util::bot_context::BotContext;
 
 pub fn on_member_add(member: TwilightMember, context: &Arc<BotContext>) {
@@ -27,7 +29,6 @@ pub fn on_member_add(member: TwilightMember, context: &Arc<BotContext>) {
 
         guild.insert_member(user_id, Arc::new(member));
         context.metrics.members.inc()
-
     } else {
         warn!("Got a member add event for an uncached guild: {}", member.guild_id);
     }
@@ -57,13 +58,18 @@ pub fn on_member_update(member_update: MemberUpdate, context: &Arc<BotContext>) 
                         Arc::new(Member::convert_update(member_update, Some(old_user.clone())))
                     };
                     guild.insert_member(user_id, new_member.clone());
-                    let new_user = new_member.user();
-                    tokio::spawn(log_updated_member(user_id, guild_id, old_member, new_member, context.clone()));
+                    let _new_user = new_member.user();
+                    tokio::spawn(log_updated_member(
+                        user_id,
+                        guild_id,
+                        old_member,
+                        new_member,
+                        context.clone(),
+                    ));
                 } else if user_updated {
                     let new_user = Arc::new(User::assemble(member_update.user, Some(old_user.clone())));
                     handle_updated_user(user_id, old_user, &new_user, context);
                 }
-
             }
         } else {
             // missing member
@@ -79,10 +85,12 @@ pub fn on_member_update(member_update: MemberUpdate, context: &Arc<BotContext>) 
                 context.metrics.users.inc();
                 context.metrics.members.inc();
             }
-
         }
     } else {
-        warn!("Got a member update event for an uncached guild: {}", member_update.guild_id);
+        warn!(
+            "Got a member update event for an uncached guild: {}",
+            member_update.guild_id
+        );
     }
 }
 
@@ -99,18 +107,32 @@ fn handle_updated_user(user_id: UserId, old_user: Arc<User>, new_user: &Arc<User
         }
     });
 
-    tokio::spawn(log_updated_user(user_id, old_user.clone(), new_user.clone(), guild_list, context.clone()));
+    tokio::spawn(log_updated_user(
+        user_id,
+        old_user.clone(),
+        new_user.clone(),
+        guild_list,
+        context.clone(),
+    ));
 }
 
-async fn log_updated_user(user_id: UserId, old_user: Arc<User>, new_user: Arc<User>, guild_list: Vec<GuildId>, context: Arc<BotContext>) {
-
+async fn log_updated_user(
+    _user_id: UserId,
+    _old_user: Arc<User>,
+    _new_user: Arc<User>,
+    _guild_list: Vec<GuildId>,
+    _context: Arc<BotContext>,
+) {
 }
 
-async fn log_updated_member(user_id: UserId, guild_id: GuildId, old_member: Arc<Member>, new_member: Arc<Member>, context: Arc<BotContext>) {
-
+async fn log_updated_member(
+    _user_id: UserId,
+    _guild_id: GuildId,
+    _old_member: Arc<Member>,
+    _new_member: Arc<Member>,
+    _context: Arc<BotContext>,
+) {
 }
-
-
 
 pub fn on_member_remove(member_remove: MemberRemove, context: &Arc<BotContext>) {
     trace!("User {} left {}", &member_remove.user.id, &member_remove.guild_id);
@@ -124,11 +146,16 @@ pub fn on_member_remove(member_remove: MemberRemove, context: &Arc<BotContext>) 
                 context.cache.cleanup_user(&member_remove.user.id)
             }
         } else if guild.cache_state() == GuildCacheState::Cached {
-            warn!("Got a member remove event for a user ({}) that wasn't cached in that guild ({})", &member_remove.user.id, &member_remove.guild_id);
+            warn!(
+                "Got a member remove event for a user ({}) that wasn't cached in that guild ({})",
+                &member_remove.user.id, &member_remove.guild_id
+            );
         }
         //TODO: handle
-
     } else {
-        warn!("Got a member remove event for an uncached guild: {}", member_remove.guild_id);
+        warn!(
+            "Got a member remove event for an uncached guild: {}",
+            member_remove.guild_id
+        );
     }
 }

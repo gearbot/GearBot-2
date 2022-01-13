@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter};
+
 use sqlx::Error;
+
 use crate::datastore::guild::CURRENT_CONFIG_VERSION;
 
 pub enum DatastoreError {
@@ -13,7 +15,11 @@ impl Display for DatastoreError {
         match self {
             DatastoreError::Sqlx(e) => write!(f, "Database error occurred: {:?}", e),
             DatastoreError::Serde(e) => write!(f, "Serde error: {}", e),
-            DatastoreError::UnsupportedConfigVersion(v) =>  write!(f, "Config is of version {} but this application only supports up to {} at this time", v, CURRENT_CONFIG_VERSION),
+            DatastoreError::UnsupportedConfigVersion(v) => write!(
+                f,
+                "Config is of version {} but this application only supports up to {} at this time",
+                v, CURRENT_CONFIG_VERSION
+            ),
         }
     }
 }

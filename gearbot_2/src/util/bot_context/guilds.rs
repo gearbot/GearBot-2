@@ -1,8 +1,11 @@
 use std::sync::Arc;
+
 use tracing::{error, info};
 use twilight_model::id::GuildId;
-use gearbot_2_lib::datastore::DatastoreResult;
+
 use gearbot_2_lib::datastore::guild::GuildInfo;
+use gearbot_2_lib::datastore::DatastoreResult;
+
 use crate::util::bot_context::BotContext;
 
 impl BotContext {
@@ -21,7 +24,6 @@ impl BotContext {
                 .collect::<Vec<GuildId>>()
         };
 
-
         let result = self.datastore.get_guild_info_bulk(to_load).await;
 
         let mut loaded = self.cached_guild_info.write();
@@ -37,15 +39,12 @@ impl BotContext {
         }
     }
 
-
     /// gets the guild info (config + encryption key) for a guild. If none exists one will be
     /// made and persisted
     pub async fn get_guild_info(&self, guild_id: &GuildId) -> DatastoreResult<Arc<GuildInfo>> {
         // first try the cache
         // the option block here is so cause it otherwise keeps the lock into the else
-        let option = {
-            self.cached_guild_info.read().get(guild_id).cloned()
-        };
+        let option = { self.cached_guild_info.read().get(guild_id).cloned() };
         if let Some(info) = option {
             Ok(info.clone())
         } else {
@@ -61,6 +60,4 @@ impl BotContext {
             }
         }
     }
-
-    
 }

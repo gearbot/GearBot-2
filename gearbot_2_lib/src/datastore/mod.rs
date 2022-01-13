@@ -1,22 +1,23 @@
 use std::collections::HashMap;
 use std::env;
 use std::time::Duration;
-use sqlx::{PgPool, Postgres, query, query_as, Transaction as SqlxTransaction};
-use sqlx::postgres::PgPoolOptions;
-use tracing::{info, trace};
-use twilight_model::id::GuildId;
-use crate::datastore::crypto::EncryptionKey;
-use crate::datastore::guild::{GuildConfig, DatabaseGuildInfo, GuildInfo, GuildConfigWrapper};
 
-mod crypto;
-pub mod guild;
-mod error;
+use sqlx::postgres::PgPoolOptions;
+use sqlx::{query, query_as, PgPool, Postgres, Transaction as SqlxTransaction};
+use tracing::info;
+use twilight_model::id::GuildId;
 
 pub use error::DatastoreError;
 
+use crate::datastore::crypto::EncryptionKey;
+use crate::datastore::guild::{DatabaseGuildInfo, GuildConfig, GuildConfigWrapper, GuildInfo};
+
+mod crypto;
+mod error;
+pub mod guild;
+
 pub type DatastoreResult<T> = Result<T, DatastoreError>;
 type Transaction<'a> = SqlxTransaction<'a, Postgres>;
-
 
 pub struct Datastore {
     master_encryption_key: EncryptionKey<'static>,
@@ -30,37 +31,45 @@ impl Datastore {
         let encryption_key = env::var("ENCRYPTION_KEY").expect("Missing ENCRYPTION_KEY!");
 
         let pool = PgPoolOptions::new()
-            .max_connections(env::var("POOL_CONNECTIONS").map(|val| val.parse::<u32>().expect("Pool connections value isn't a proper number")).unwrap_or_else(|_| 5))
+            .max_connections(
+                env::var("POOL_CONNECTIONS")
+                    .map(|val| {
+                        val.parse::<u32>()
+                            .expect("Pool connections value isn't a proper number")
+                    })
+                    .unwrap_or_else(|_| 5),
+            )
             .idle_timeout(Duration::from_secs(60))
-            .connect(&database_url).await?;
+            .connect(&database_url)
+            .await?;
 
         info!("Pool created, making sure the database is up to date.");
         sqlx::migrate!("../migrations").run(&pool).await?;
         info!("Database migrations complete!");
 
-        Ok(
-            Datastore {
-                master_encryption_key: EncryptionKey::construct_owned(encryption_key.as_bytes()),
-                pool,
-            }
-        )
+        Ok(Datastore {
+            master_encryption_key: EncryptionKey::construct_owned(encryption_key.as_bytes()),
+            pool,
+        })
     }
 
     /// get the config and encryption key for a guild. if none exists one will be created.
     /// If there was a left_at attribute it is now cleared
-    pub async fn get_or_create_guild_info(&self,  guild_id: &GuildId) -> DatastoreResult<GuildInfo> {
+    pub async fn get_or_create_guild_info(&self, guild_id: &GuildId) -> DatastoreResult<GuildInfo> {
         let mut transaction = self.pool.begin().await?;
         let info: Option<DatabaseGuildInfo> = query_as!(
             DatabaseGuildInfo,
             "UPDATE guild_config SET left_at=null where id=$1 RETURNING id, version, config, encryption_key",
-            guild_id.get() as i64)
-            .fetch_optional(&mut transaction).await?;
-        let info= if let Some(info) = info {
+            guild_id.get() as i64
+        )
+        .fetch_optional(&mut transaction)
+        .await?;
+        let info = if let Some(info) = info {
             if !info.has_supported_config() {
                 return Err(DatastoreError::UnsupportedConfigVersion(info.version));
             }
 
-           info.into_config_and_key()?
+            info.into_config_and_key()?
         } else {
             // none existed, make a new one
             let info = self.setup_new_guild(guild_id, &mut transaction).await?;
@@ -69,34 +78,46 @@ impl Datastore {
         transaction.commit().await?;
 
         Ok(info)
-
     }
 
     /// create and persist a new config and encryption key for a guild
-    async fn setup_new_guild(&self, guild_id: &GuildId, transaction: &mut Transaction<'_>) -> DatastoreResult<GuildInfo> {
+    async fn setup_new_guild(
+        &self,
+        guild_id: &GuildId,
+        transaction: &mut Transaction<'_>,
+    ) -> DatastoreResult<GuildInfo> {
         let config = GuildConfig::default().wrapped();
         let raw_config = serde_json::to_value(&config)?;
         let raw_key = crypto::generate_guild_encryption_key(&self.master_encryption_key, guild_id.get());
-        query!("INSERT INTO guild_config (id, encryption_key, config) VALUES ($1, $2, $3)",
+        query!(
+            "INSERT INTO guild_config (id, encryption_key, config) VALUES ($1, $2, $3)",
             guild_id.get() as i64,
             raw_key,
             raw_config
         )
-            .execute(transaction)
-            .await?;
+        .execute(transaction)
+        .await?;
 
-        Ok(
-            GuildInfo {
-                config: config.into_config(),
-                encryption_key: EncryptionKey::construct_owned(&raw_key)
-
-    }
-        )
+        Ok(GuildInfo {
+            config: config.into_config(),
+            encryption_key: EncryptionKey::construct_owned(&raw_key),
+        })
     }
 
     /// persist the guild config
-    pub async fn save_guild_config(&self, guild_id: &GuildId, config: GuildConfigWrapper, transaction: &mut Transaction<'_>) -> DatastoreResult<()> {
-        query!("UPDATE guild_config SET config=$1 WHERE id=$2", serde_json::to_value(config)?, guild_id.get() as i64).execute(transaction).await?;
+    pub async fn save_guild_config(
+        &self,
+        guild_id: &GuildId,
+        config: GuildConfigWrapper,
+        transaction: &mut Transaction<'_>,
+    ) -> DatastoreResult<()> {
+        query!(
+            "UPDATE guild_config SET config=$1 WHERE id=$2",
+            serde_json::to_value(config)?,
+            guild_id.get() as i64
+        )
+        .execute(transaction)
+        .await?;
         Ok(())
     }
 

@@ -1,5 +1,4 @@
-use serde::{Serialize, Deserialize};
-
+use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct V1Config {
@@ -15,11 +14,10 @@ pub struct ModLog {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MessageLogs {
     pub enabled: bool,
-
 }
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum LogStyle {
     Text,
-    Embed
+    Embed,
 }

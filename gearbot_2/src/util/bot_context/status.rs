@@ -1,4 +1,5 @@
 use tracing::info;
+
 use crate::util::bot_context::BotContext;
 
 #[derive(Clone, Eq, PartialEq)]
@@ -6,7 +7,7 @@ pub enum BotStatus {
     STARTING,
     STANDBY,
     PRIMARY,
-    TERMINATING
+    TERMINATING,
 }
 
 impl BotStatus {
@@ -29,7 +30,11 @@ impl BotContext {
 
         // update metrics
         self.metrics.status.reset();
-        self.metrics.status.get_metric_with_label_values(&[new_status.name()]).unwrap().set(1);
+        self.metrics
+            .status
+            .get_metric_with_label_values(&[new_status.name()])
+            .unwrap()
+            .set(1);
 
         //store new status
         *status = new_status;

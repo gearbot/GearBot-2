@@ -1,26 +1,28 @@
-use actix_web::{Responder, HttpResponse, HttpServer, web, get, App};
 use std::env;
 use std::sync::Arc;
+
+use actix_web::middleware::{DefaultHeaders, Logger};
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
+use git_version::git_version;
 use ring::signature;
 use ring::signature::UnparsedPublicKey;
-use twilight_http::Client;
-use gearbot_2_lib::translations::Translator;
-use actix_web::middleware::{DefaultHeaders, Logger};
 use tracing::{error, info};
+use twilight_http::Client;
+
+use gearbot_2_lib::datastore::Datastore;
 use gearbot_2_lib::kafka::sender::KafkaSender;
+use gearbot_2_lib::translations::Translator;
 use gearbot_2_lib::util::get_twilight_client;
+
 use crate::middleware::{expose_metrics, PrometheusMetrics};
 use crate::util::Metrics;
-use git_version::git_version;
-use gearbot_2_lib::datastore::Datastore;
-
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const GIT_VERSION: &str = git_version!();
 
 mod interactions;
-pub mod util;
 mod middleware;
+pub mod util;
 
 #[get("")]
 async fn hello() -> impl Responder {
@@ -36,7 +38,6 @@ pub struct State {
     pub datastore: Datastore,
 }
 
-
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     tracing_subscriber::fmt::init();
@@ -45,8 +46,9 @@ async fn main() -> std::io::Result<()> {
     // reading env variables
     let hex_signature = env::var("PUBLIC_KEY").expect("Missing PUBLIC_KEY env variable!");
 
-
-    let client = get_twilight_client().await.expect("Failed to construct twilight http client");
+    let client = get_twilight_client()
+        .await
+        .expect("Failed to construct twilight http client");
 
     let decoded_signature = hex::decode(hex_signature).expect("Failed to decode PUBLIC_KEY");
     let public_key = signature::UnparsedPublicKey::new(&signature::ED25519, decoded_signature);
@@ -58,7 +60,7 @@ async fn main() -> std::io::Result<()> {
         Ok(datastore) => datastore,
         Err(e) => {
             error!("Failed to initialize the datastore: {:?}", e);
-            return Ok(())
+            return Ok(());
         }
     };
 
@@ -69,7 +71,7 @@ async fn main() -> std::io::Result<()> {
         translator,
         metrics: Metrics::new(),
         kafka_sender: KafkaSender::new(),
-        datastore
+        datastore,
     };
     let state = Arc::new(inner_state);
 
@@ -81,17 +83,18 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 DefaultHeaders::new()
                     .add(("X-Version", env!("CARGO_PKG_VERSION")))
-                    .add(("Content-Type", "application/json")))
-            .service(web::scope(&root_path)
-                .app_data(state.clone())
-                .service(hello)
-                .service(interactions::handle_interactions)
-                .service(expose_metrics)
+                    .add(("Content-Type", "application/json")),
+            )
+            .service(
+                web::scope(&root_path)
+                    .app_data(state.clone())
+                    .service(hello)
+                    .service(interactions::handle_interactions)
+                    .service(expose_metrics),
             )
     })
-        .keep_alive(90)
-        .bind("0.0.0.0:4000")?
-        .run()
-        .await
-
+    .keep_alive(90)
+    .bind("0.0.0.0:4000")?
+    .run()
+    .await
 }
