@@ -16,7 +16,7 @@ pub fn on_thread_delete(thread_delete: ThreadDelete, context: &Arc<BotContext>) 
 }
 
 pub fn on_thread_update(channel: TwilightChannel, context: &Arc<BotContext>) {
-    if let Some((_old, new)) = cache_channel_update(channel, context) {}
+    if let Some((_old, _new)) = cache_channel_update(channel, context) {}
 }
 
 pub fn on_thread_sync(sync: ThreadListSync, context: &Arc<BotContext>) {

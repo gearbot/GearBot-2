@@ -6,7 +6,7 @@ pub use guild_config::GuildConfig;
 pub use guild_config::GuildInfo;
 
 use crate::datastore::crypto::EncryptionKey;
-use crate::datastore::guild::guild_config::history::V1Config;
+use crate::datastore::guild::config::history::V1Config;
 
 mod guild_config;
 mod history;

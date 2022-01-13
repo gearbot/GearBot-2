@@ -1,15 +1,15 @@
 use std::ops::Deref;
 
-pub use guild_config::DatabaseGuildInfo;
-pub use guild_config::GuildConfig;
-pub use guild_config::GuildConfigWrapper;
-pub use guild_config::GuildInfo;
-pub use guild_config::CURRENT_CONFIG_VERSION;
+pub use config::DatabaseGuildInfo;
+pub use config::GuildConfig;
+pub use config::GuildConfigWrapper;
+pub use config::GuildInfo;
+pub use config::CURRENT_CONFIG_VERSION;
 
 use crate::datastore::crypto::EncryptionKey;
 use crate::datastore::Datastore;
 
-mod guild_config;
+mod config;
 
 pub struct GuildDatastore<'a> {
     master_datastore: &'a Datastore,

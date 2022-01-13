@@ -76,7 +76,7 @@ async fn main() -> std::io::Result<()> {
     let state = Arc::new(inner_state);
 
     HttpServer::new(move || {
-        let root_path = env::var("API_PATH").unwrap_or("api".to_string());
+        let root_path = env::var("API_PATH").unwrap_or_else(|_| "api".to_string());
         App::new()
             .wrap(Logger::default())
             .wrap(PrometheusMetrics::new(state.clone()))

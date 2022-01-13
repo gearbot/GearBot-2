@@ -77,7 +77,7 @@ impl BotContext {
             client,
             cluster,
             metrics,
-            cache: Cache::new(),
+            cache: Cache::new_cache(),
             requested_guilds,
             pending_chunks,
             status: RwLock::new(BotStatus::STARTING),

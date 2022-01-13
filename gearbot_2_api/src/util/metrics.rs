@@ -17,6 +17,7 @@ pub struct Metrics {
 }
 
 impl Metrics {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         // all of these are safe to unwrap as they only error when illegal arguments are passed, and none of these are dynamic
         let registry = Registry::new_custom(Some(String::from("gearbot")), None).unwrap();

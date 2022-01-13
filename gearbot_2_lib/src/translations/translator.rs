@@ -35,7 +35,7 @@ impl Translator {
         info!("Loading translations...");
 
         let translation_dir =
-            fs::read_dir(lang_dir).expect(&format!("Unable to read translations directory '{}'", lang_dir));
+            fs::read_dir(lang_dir).unwrap_or_else(|_| panic!("Unable to read translations directory '{}'", lang_dir));
 
         let mut translations = HashMap::new();
 
@@ -45,7 +45,7 @@ impl Translator {
             let dir_name = child.file_name().to_string_lossy().to_string();
             if !child
                 .file_type()
-                .expect(&format!("Unable to determine filetype of '{}'", dir_name))
+                .unwrap_or_else(|_| panic!("Unable to determine filetype of '{}'", dir_name))
                 .is_dir()
             {
                 warn!("Ignoring '{}' as it's not a directory", dir_name);
@@ -60,7 +60,8 @@ impl Translator {
                 // bundle.set_use_isolating(false);
 
                 // read and combine all files in the directory
-                let lang_dir = fs::read_dir(child.path()).expect(&format!("Unable to read lang dir '{}'", dir_name));
+                let lang_dir =
+                    fs::read_dir(child.path()).unwrap_or_else(|_| panic!("Unable to read lang dir '{}'", dir_name));
                 for file_result in lang_dir {
                     let file = file_result.expect("Failed to get file metadata from dir");
                     let file_name = file.file_name().to_string_lossy().to_string();
@@ -82,7 +83,7 @@ impl Translator {
                             Ok(resource) => {
                                 bundle
                                     .add_resource(resource)
-                                    .expect(&format!("Failed to add entry to the bundle: {}", &line));
+                                    .unwrap_or_else(|_| panic!("Failed to add entry to the bundle: {}", &line));
                             }
                             Err(e) => {
                                 error!(
@@ -134,7 +135,7 @@ impl Translator {
         let mut message = translations.get_message(translation_key);
 
         // not found, try the master language if we where not already using that
-        if message.is_none() && lang != &self.master_lang {
+        if message.is_none() && lang != self.master_lang {
             message = self
                 .translations
                 .get(&self.master_lang)

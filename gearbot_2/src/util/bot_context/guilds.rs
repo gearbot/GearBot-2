@@ -46,7 +46,7 @@ impl BotContext {
         // the option block here is so cause it otherwise keeps the lock into the else
         let option = { self.cached_guild_info.read().get(guild_id).cloned() };
         if let Some(info) = option {
-            Ok(info.clone())
+            Ok(info)
         } else {
             let result = self.datastore.get_or_create_guild_info(guild_id).await;
             let mut cache = self.cached_guild_info.write();
@@ -55,7 +55,7 @@ impl BotContext {
                 Ok(info.clone())
             } else {
                 let info = Arc::new(result?);
-                cache.insert(guild_id.clone(), info.clone());
+                cache.insert(*guild_id, info.clone());
                 Ok(info)
             }
         }

@@ -42,7 +42,7 @@ pub fn generate_guild_encryption_key(main_encryption_key: &EncryptionKey, guild_
 pub fn encrypt_bytes(plaintext: &[u8], key: &EncryptionKey, msg_id: u64) -> Vec<u8> {
     let aead = Aes256Gcm::new(&key.0);
 
-    // Since nonce's only never need to be reused, and Discor's snowflakes for messages
+    // Since nonce's only never need to be reused, and Discord's snowflakes for messages
     // are unique, we can use the message id to construct the nonce with its 64 bits, and then
     // pad the rest with zeros.
     let mut nonce_bytes = [0u8; 12];
@@ -52,7 +52,7 @@ pub fn encrypt_bytes(plaintext: &[u8], key: &EncryptionKey, msg_id: u64) -> Vec<
 
     let nonce = GenericArray::from_slice(&nonce_bytes);
 
-    aead.encrypt(&nonce, plaintext).expect("Failed to encrypt an object!")
+    aead.encrypt(nonce, plaintext).expect("Failed to encrypt an object!")
 }
 
 pub fn decrypt_bytes(ciphertext: &[u8], key: &EncryptionKey, msg_id: u64) -> Vec<u8> {
@@ -65,5 +65,5 @@ pub fn decrypt_bytes(ciphertext: &[u8], key: &EncryptionKey, msg_id: u64) -> Vec
 
     let nonce = GenericArray::from_slice(&nonce_bytes);
 
-    aead.decrypt(&nonce, ciphertext).expect("Failed to decrypt an object!")
+    aead.decrypt(nonce, ciphertext).expect("Failed to decrypt an object!")
 }
