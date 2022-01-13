@@ -1,23 +1,23 @@
-use crate::cache::guild::GuildCacheState;
-use crate::cache::{Guild, Member};
-use crate::{communication, BotContext, BotStatus};
-use gearbot_2_lib::kafka::message::{General, Message};
-use gearbot_2_lib::kafka::sender::KafkaSender;
-use std::sync::atomic::Ordering;
 use std::sync::Arc;
+use std::sync::atomic::Ordering;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tracing::{debug, error, info, trace, warn};
 use twilight_model::gateway::payload::incoming::{GuildDelete, MemberChunk};
 use twilight_model::gateway::payload::outgoing::request_guild_members::RequestGuildMembersBuilder;
 use twilight_model::guild::{Guild as TwilightGuild, PartialGuild};
 use twilight_model::id::GuildId;
+use gearbot_2_lib::kafka::message::{General, Message};
+use gearbot_2_lib::kafka::sender::KafkaSender;
+use crate::{BotStatus, communication};
+use crate::cache::{Guild, Member};
+use crate::cache::guild::GuildCacheState;
+use crate::util::bot_context::BotContext;
+
 
 pub fn on_guild_create(shard: u64, guild: TwilightGuild, context: &Arc<BotContext>) {
     let guild_id = guild.id;
     let new: Arc<Guild> = Arc::new(guild.into());
-    context
-        .cache
-        .insert_guild(shard, guild_id, new.clone(), &context.metrics);
+    context.cache.insert_guild(shard, guild_id, new.clone(), &context.metrics);
 
     tokio::spawn(new_guild_processor(shard, guild_id, new, context.clone()));
 }
@@ -32,9 +32,7 @@ pub fn on_guild_update(guild: PartialGuild, context: &Arc<BotContext>) {
 }
 
 pub fn on_guild_delete(shard: u64, event: GuildDelete, context: &Arc<BotContext>) {
-    let old = context
-        .cache
-        .remove_guild(shard, event.id, event.unavailable, &context.metrics);
+    let old = context.cache.remove_guild(shard, event.id, event.unavailable, &context.metrics);
     if old.is_some() {
         if event.unavailable {
             info!("Guild {} became unavailable", event.id)
@@ -42,22 +40,13 @@ pub fn on_guild_delete(shard: u64, event: GuildDelete, context: &Arc<BotContext>
             info!("Removed from guild {}", event.id)
         }
     } else {
-        warn!(
-            "Received a guild delete event for a server that wasn't cached: {}",
-            event.id
-        );
+        warn!("Received a guild delete event for a server that wasn't cached: {}", event.id);
     }
 }
 
 pub fn on_member_chunk(shard: u64, chunk: MemberChunk, context: &Arc<BotContext>) {
     let member_count = chunk.members.len();
-    trace!(
-        "Received chunk {}/{} for guild {} with {} members",
-        chunk.chunk_index + 1,
-        chunk.chunk_count,
-        chunk.guild_id,
-        member_count
-    );
+    trace!("Received chunk {}/{} for guild {} with {} members", chunk.chunk_index + 1, chunk.chunk_count, chunk.guild_id, member_count);
 
     let last = chunk.chunk_count - 1 == chunk.chunk_index;
     let mut new_users = Vec::new();
@@ -75,10 +64,7 @@ pub fn on_member_chunk(shard: u64, chunk: MemberChunk, context: &Arc<BotContext>
                     member
                 };
                 (uid, Arc::new(member))
-            }),
-            last,
-            &context.metrics,
-            shard,
+            }), last, &context.metrics, shard,
         );
 
         let user_count = new_users.len();
@@ -94,20 +80,14 @@ pub fn on_member_chunk(shard: u64, chunk: MemberChunk, context: &Arc<BotContext>
         if last {
             // Safety net: declare us non pending so if a bug in the twilight websocket rate limit handling
             // causes this shard to die, we can recover
-            context
-                .pending_chunks
-                .get(&shard)
-                .unwrap()
-                .store(false, Ordering::SeqCst);
+            context.pending_chunks.get(&shard).unwrap().store(false, Ordering::SeqCst);
             tokio::spawn(request_next_guild(shard, context.clone()));
         }
     } else {
-        error!(
-            "Got a member chunk for guild {} but no such guild exists in the cache!",
-            &chunk.guild_id
-        );
+        error!("Got a member chunk for guild {} but no such guild exists in the cache!", &chunk.guild_id);
     }
 }
+
 
 // async function actually process the new guild
 async fn new_guild_processor(shard: u64, guild_id: GuildId, guild: Arc<Guild>, context: Arc<BotContext>) {
@@ -121,6 +101,7 @@ async fn new_guild_processor(shard: u64, guild_id: GuildId, guild: Arc<Guild>, c
         atom.store(true, Ordering::SeqCst);
         request_guild_members(shard, guild_id, &context).await
     }
+
 
     //todo: actually process the new guild
 }
@@ -136,26 +117,17 @@ async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Arc<BotC
     debug!("Requesting guild members for guild {} on shard {}", guild_id, shard);
     // let info = s.info().unwrap();
     // info!("Shard rate limit info before: (refill: {:?}, refill - now: {:?}, requests: {})", info.ratelimit_refill(), info.ratelimit_refill() - Instant::now(), info.ratelimit_requests());
-    if let Err(e) = s
-        .command(
-            &RequestGuildMembersBuilder::new(guild_id)
-                .presences(false)
-                .query("", None),
-        )
-        .await
-    {
-        error!(
-            "Failed to request guild members for guild {} on shard {}: {}",
-            guild_id, shard, e
-        );
+    if let Err(e) = s.command(
+        &RequestGuildMembersBuilder::new(guild_id)
+            .presences(false)
+            .query("", None)
+    )
+        .await {
+        error!("Failed to request guild members for guild {} on shard {}: {}", guild_id, shard, e);
 
         // sending the command failed, log the error and unblock guild requesting
         // TODO: find a way to queue the next one if needed without infinite recursion compile issues
-        context
-            .pending_chunks
-            .get(&shard)
-            .unwrap()
-            .store(false, Ordering::SeqCst);
+        context.pending_chunks.get(&shard).unwrap().store(false, Ordering::SeqCst);
     }
     // let info = s.info().unwrap();
     // info!("Shard rate limit info after is {:?}, {}", info.ratelimit_refill(), info.ratelimit_requests());
@@ -163,18 +135,10 @@ async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Arc<BotC
 
 pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
     if let Some(guild_id) = context.get_next_requested_guild(&shard) {
-        context
-            .pending_chunks
-            .get(&shard)
-            .unwrap()
-            .store(true, Ordering::SeqCst);
+        context.pending_chunks.get(&shard).unwrap().store(true, Ordering::SeqCst);
         request_guild_members(shard, guild_id, &context).await;
     } else {
-        context
-            .pending_chunks
-            .get(&shard)
-            .unwrap()
-            .store(false, Ordering::SeqCst);
+        context.pending_chunks.get(&shard).unwrap().store(false, Ordering::SeqCst);
 
         let mut unfinished_business = Vec::new();
         // verify all are actually done
@@ -197,31 +161,24 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
                     // 20 seconds should be plenty of time to ensure the current primary instance gets it, even in a failover scenario
                     // the uuid is ensure we don't shut down ourselves accidentally
                     //
-                    let goal =
-                        (SystemTime::now().duration_since(UNIX_EPOCH).unwrap() + Duration::from_secs(30)).as_millis();
+                    let goal = (SystemTime::now().duration_since(UNIX_EPOCH).unwrap() + Duration::from_secs(30)).as_millis();
 
                     if let Err(e) = KafkaSender::new()
-                        .send(
-                            &context.get_queue_topic(),
-                            &Message::General(General::ShutdownAt {
-                                time: goal,
-                                uuid: context.uuid.as_u128(),
-                            }),
-                        )
-                        .await
-                    {
+                        .send(&context.get_queue_topic(),
+                              &Message::General(
+                                  General::ShutdownAt {
+                                      time: goal,
+                                      uuid: context.uuid.as_u128(),
+                                  }))
+                        .await {
                         error!("Failed to send the shutdown time to the old instance: {}", e);
                     } else {
                         // the primary cluster was informed, recalculate time left. using saturating sub to avoid overflowing into the next century
                         let left = Duration::from_millis(
-                            goal.saturating_sub(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis())
-                                as u64,
+                            goal.saturating_sub(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis()) as u64
                         );
 
-                        info!(
-                            "Ready to take over as primary instance in {} seconds",
-                            left.as_secs_f32()
-                        );
+                        info!("Ready to take over as primary instance in {} seconds", left.as_secs_f32());
                         tokio::time::sleep(left).await;
                         if context.is_status(BotStatus::STANDBY) {
                             info!("Taking over as primary instance!");
@@ -236,19 +193,12 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
                 }
             }
         } else {
-            warn!(
-                "No more guild member requests where pending, yet {} guild(s) are not fully cached, retrying...",
-                unfinished_business.len()
-            );
+            warn!("No more guild member requests where pending, yet {} guild(s) are not fully cached, retrying...", unfinished_business.len());
             let guild = unfinished_business.pop();
             if !unfinished_business.is_empty() {
                 context.add_requested_guilds(&shard, unfinished_business);
             }
-            context
-                .pending_chunks
-                .get(&shard)
-                .unwrap()
-                .store(true, Ordering::SeqCst);
+            context.pending_chunks.get(&shard).unwrap().store(true, Ordering::SeqCst);
             // safe to unwrap, due to the empty check we know there was something to pop
             request_guild_members(shard, guild.unwrap(), &context).await;
         }

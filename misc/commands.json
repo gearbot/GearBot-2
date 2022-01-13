@@ -18,6 +18,14 @@
           {
             "name": "cache",
             "value": "cache"
+          },
+          {
+            "name": "guild_config",
+            "value": "guild_config"
+          },
+          {
+            "name": "locale",
+            "value": "locale"
           }
         ]
       }

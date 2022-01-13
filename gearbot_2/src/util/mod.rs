@@ -1,6 +1,4 @@
-mod bot_context;
-pub use bot_context::BotContext;
-pub use bot_context::BotStatus;
+pub mod bot_context;
 
 mod metrics;
 pub use metrics::*;
