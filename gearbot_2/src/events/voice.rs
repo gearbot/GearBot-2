@@ -1,7 +1,7 @@
-use crate::cache::voice_state::VoiceState;
-use crate::BotContext;
 use std::sync::Arc;
+use crate::cache::voice_state::VoiceState;
 use twilight_model::voice::VoiceState as TwilightVoiceState;
+use crate::util::bot_context::BotContext;
 
 pub fn on_voice_state_update(update: TwilightVoiceState, context: &Arc<BotContext>) {
     if let Some(guild_id) = update.guild_id {
@@ -9,6 +9,7 @@ pub fn on_voice_state_update(update: TwilightVoiceState, context: &Arc<BotContex
             let user_id = update.user_id;
             let new = VoiceState::from_state(update).map(|state| Arc::new(state));
             let old = guild.set_voice_state(user_id, new.clone());
+
         }
     }
 }

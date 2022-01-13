@@ -1,2 +1,3 @@
 ping_calculating=Calculating...
 ping_calculated=**Send message latency**: {$latency}ms
+debug_localization=Your locale is {$user_locale}, the guild locale is {$guild_locale}
