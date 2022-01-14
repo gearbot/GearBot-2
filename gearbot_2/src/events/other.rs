@@ -7,7 +7,7 @@ use twilight_model::gateway::payload::incoming::Ready;
 use crate::events::guild::request_next_guild;
 use crate::util::bot_context::BotContext;
 
-pub async fn on_ready(ready: &Ready, shard: u64, context: &Arc<BotContext>) {
+pub fn on_ready(ready: Ready, shard: u64, context: Arc<BotContext>) {
     // make sure we don't think we are waiting on chunks. This only gets fired on new connections
     // so there can't be pending chunks on their way. We will get fresh creates for all guilds
     // so that will kick off the actual requesting.
@@ -24,9 +24,11 @@ pub async fn on_ready(ready: &Ready, shard: u64, context: &Arc<BotContext>) {
     }
 
     // pre load the configs we already have
-    context
-        .load_initial_guilds(ready.guilds.iter().map(|guild| guild.id).collect())
-        .await;
+    tokio::spawn(async move {
+        context
+            .load_initial_guilds(ready.guilds.iter().map(|guild| guild.id).collect())
+            .await;
+    });
 }
 
 pub fn on_resume(shard: u64, context: &Arc<BotContext>) {

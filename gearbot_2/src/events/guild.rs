@@ -130,7 +130,7 @@ async fn new_guild_processor(shard: u64, guild_id: GuildId, _guild: Arc<Guild>, 
 }
 
 async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Arc<BotContext>) {
-    if context.is_status(BotStatus::TERMINATING) {
+    if context.is_status(BotStatus::Terminating) {
         info!("Cluster is terminating but guild members where requested, canceling all pending member requests!");
         context.clear_requested_guilds();
         return;
@@ -196,8 +196,8 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
             info!("No more guild member requests pending for shard {}!", shard);
             if !context.has_any_requested_guilds() {
                 info!("All guilds across all shards are now cached");
-                if context.is_status(BotStatus::STARTING) {
-                    context.set_status(BotStatus::STANDBY);
+                if context.is_status(BotStatus::Starting) {
+                    context.set_status(BotStatus::Standby);
                     // 20 seconds should be plenty of time to ensure the current primary instance gets it, even in a failover scenario
                     // the uuid is ensure we don't shut down ourselves accidentally
                     //
@@ -227,9 +227,9 @@ pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
                             left.as_secs_f32()
                         );
                         tokio::time::sleep(left).await;
-                        if context.is_status(BotStatus::STANDBY) {
+                        if context.is_status(BotStatus::Standby) {
                             info!("Taking over as primary instance!");
-                            context.set_status(BotStatus::PRIMARY);
+                            context.set_status(BotStatus::Primary);
                             if let Err(e) = communication::initialize(context.clone()).await {
                                 error!("Failed to connect to the queue: {}", e)
                             }

@@ -30,7 +30,7 @@ pub async fn initialize_when_lonely(context: Arc<BotContext>) {
     let consumer: BaseConsumer = base_kafka_config().create().unwrap();
     loop {
         {
-            if context.is_status(BotStatus::TERMINATING) {
+            if context.is_status(BotStatus::Terminating) {
                 return;
             }
             let metadata = consumer.fetch_group_list(
@@ -48,7 +48,7 @@ pub async fn initialize_when_lonely(context: Arc<BotContext>) {
                     {
                         if info.members().is_empty() {
                             info!("No other instances listening on the queue, we are now the primary instance!");
-                            context.set_status(BotStatus::PRIMARY);
+                            context.set_status(BotStatus::Primary);
                             break;
                         }
                     } else {
@@ -61,7 +61,7 @@ pub async fn initialize_when_lonely(context: Arc<BotContext>) {
                 }
             }
         }
-        if context.is_status(BotStatus::PRIMARY) {
+        if context.is_status(BotStatus::Primary) {
             //the regular mechanics kicked in and put us in charge of the queue, no need to keep trying anymore
             return;
         }
@@ -93,8 +93,8 @@ pub async fn initialize(context: Arc<BotContext>) -> Result<(), KafkaSenderError
                     SetError::InitializingError(handle) => handle,
                 };
                 handle.abort();
-            } else if !context.is_status(BotStatus::PRIMARY) {
-                context.set_status(BotStatus::PRIMARY);
+            } else if !context.is_status(BotStatus::Primary) {
+                context.set_status(BotStatus::Primary);
             }
             Ok(())
         }
@@ -144,7 +144,7 @@ fn handle_message(message: Message, context: Arc<BotContext>) {
     match message {
         Message::General(message) => general::handle(message, context),
         Message::Interaction { token, command } => {
-            if context.is_status(BotStatus::PRIMARY) {
+            if context.is_status(BotStatus::Primary) {
                 tokio::spawn(interaction::handle(token, command, context));
             }
         }

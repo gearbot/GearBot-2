@@ -5,7 +5,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use parking_lot::RwLock;
-use tokio::sync::{OnceCell, SetError};
+use tokio::sync::{OnceCell, RwLock as AsyncRwLock, SetError};
 use tokio::task::JoinHandle;
 use tracing::info;
 use twilight_gateway::Cluster;
@@ -46,7 +46,7 @@ pub struct BotContext {
     receiver_handle: OnceCell<JoinHandle<()>>,
 
     /// Config cache
-    cached_guild_info: RwLock<HashMap<GuildId, Arc<GuildInfo>>>,
+    cached_guild_info: AsyncRwLock<HashMap<GuildId, Arc<GuildInfo>>>,
 }
 
 impl BotContext {
@@ -69,7 +69,7 @@ impl BotContext {
         let metrics = Metrics::new(cluster_id);
         metrics
             .status
-            .get_metric_with_label_values(&[BotStatus::STARTING.name()])
+            .get_metric_with_label_values(&[BotStatus::Starting.name()])
             .unwrap()
             .set(1);
         BotContext {
@@ -80,7 +80,7 @@ impl BotContext {
             cache: Cache::new_cache(),
             requested_guilds,
             pending_chunks,
-            status: RwLock::new(BotStatus::STARTING),
+            status: RwLock::new(BotStatus::Starting),
             cluster_info: ClusterInfo {
                 cluster_id,
                 shards,
@@ -135,7 +135,7 @@ impl BotContext {
 
     pub fn shutdown(&self) {
         info!("Shutdown initiated...");
-        self.set_status(BotStatus::TERMINATING);
+        self.set_status(BotStatus::Terminating);
         self.cluster.down();
 
         if let Some(handle) = self.receiver_handle.get() {

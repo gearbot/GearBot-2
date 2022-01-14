@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 
 use sqlx::Error;
 
-use crate::datastore::guild::CURRENT_CONFIG_VERSION;
+use super::guild::CURRENT_CONFIG_VERSION;
 
 pub enum DatastoreError {
     Sqlx(sqlx::Error),
