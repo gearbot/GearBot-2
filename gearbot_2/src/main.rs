@@ -131,7 +131,7 @@ async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
         let res = sys.block_on(srv);
 
         // this shuts down on sigterm (actix installing it's own signal handlers?), take the cluster down along with it
-        if !c2.is_status(BotStatus::TERMINATING) {
+        if !c2.is_status(BotStatus::Terminating) {
             c2.shutdown();
         }
 
@@ -147,7 +147,7 @@ async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
     });
 
     while let Some((id, event)) = events.next().await {
-        if context.is_status(BotStatus::TERMINATING) {
+        if context.is_status(BotStatus::Terminating) {
             break;
         }
 
@@ -170,10 +170,6 @@ async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
             | Event::ShardIdentifying(_)
             | Event::ShardReconnecting(_)
             | Event::ShardResuming(_) => context.metrics.recalculate_shard_states(&context),
-            // we do on ready here already so we can block the event loop on it.
-            // This is the only exception that is allowed async so we can preload the guild configs
-            // and not blow up our database pool
-            Event::Ready(ready) => on_ready(ready, id, &context).await,
             _ => {}
         }
         // update cache

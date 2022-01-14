@@ -18,7 +18,7 @@ pub fn run(time: u128, uuid: u128, context: Arc<BotContext>) {
                 left.as_secs_f32()
             );
             tokio::time::sleep(left).await;
-            if !context.is_status(BotStatus::TERMINATING) {
+            if !context.is_status(BotStatus::Terminating) {
                 info!("Shutdown time reached!");
                 context.shutdown();
             }

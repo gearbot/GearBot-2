@@ -51,6 +51,7 @@ pub fn handle_gateway_event(shard: u64, event: Event, context: &Arc<BotContext>)
         Event::UserUpdate(_) => {} // only fires for the current user, not very useful.
         Event::VoiceStateUpdate(voice_update) => on_voice_state_update(voice_update.0, context),
         Event::Resumed => on_resume(shard, context),
+        Event::Ready(ready) => on_ready(*ready, shard, context.clone()),
         _ => {}
     }
 }

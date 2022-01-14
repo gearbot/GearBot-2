@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use tracing::{error, info};
@@ -14,19 +15,19 @@ impl BotContext {
     pub async fn load_initial_guilds(&self, guilds: Vec<GuildId>) {
         info!("Bulk loading configuration for {} guilds...", guilds.len());
 
-        // read lock here since we don't write and need to drop it before the await
-        // we don't request all of them because this could have been a simple reconnect
-        let to_load = {
-            let loaded = self.cached_guild_info.read();
-            guilds
+        let mut loaded = self.cached_guild_info.write().await;
+        let result = {
+            let to_load = guilds
                 .into_iter()
                 .filter(|id| !loaded.contains_key(id))
-                .collect::<Vec<GuildId>>()
+                .collect::<Vec<GuildId>>();
+            if !to_load.is_empty() {
+                self.datastore.get_guild_info_bulk(to_load).await
+            } else {
+                return;
+            }
         };
 
-        let result = self.datastore.get_guild_info_bulk(to_load).await;
-
-        let mut loaded = self.cached_guild_info.write();
         match result {
             Ok(configs) => {
                 for (id, config) in configs {
@@ -44,12 +45,13 @@ impl BotContext {
     pub async fn get_guild_info(&self, guild_id: &GuildId) -> DatastoreResult<Arc<GuildInfo>> {
         // first try the cache
         // the option block here is so cause it otherwise keeps the lock into the else
-        let option = { self.cached_guild_info.read().get(guild_id).cloned() };
+        let option = { self.cached_guild_info.read().await.get(guild_id).cloned() };
         if let Some(info) = option {
             Ok(info)
         } else {
             let result = self.datastore.get_or_create_guild_info(guild_id).await;
-            let mut cache = self.cached_guild_info.write();
+            // we get a lock here again but this is fine since this should be extremely rare due to the caching
+            let mut cache = self.cached_guild_info.write().await;
             // check the cache again in case we failed due to a parallel race
             if let Some(info) = cache.get(guild_id) {
                 Ok(info.clone())

@@ -4,19 +4,19 @@ use crate::util::bot_context::BotContext;
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum BotStatus {
-    STARTING,
-    STANDBY,
-    PRIMARY,
-    TERMINATING,
+    Starting,
+    Standby,
+    Primary,
+    Terminating,
 }
 
 impl BotStatus {
     pub fn name(&self) -> &str {
         match self {
-            BotStatus::STARTING => "STARTING",
-            BotStatus::STANDBY => "STANDBY",
-            BotStatus::PRIMARY => "PRIMARY",
-            BotStatus::TERMINATING => "TERMINATING",
+            BotStatus::Starting => "STARTING",
+            BotStatus::Standby => "STANDBY",
+            BotStatus::Primary => "PRIMARY",
+            BotStatus::Terminating => "TERMINATING",
         }
     }
 }
