@@ -29,7 +29,7 @@ pub async fn on_message(message: MessageCreate, context: Arc<BotContext>) -> Gea
             )
             .await?;
 
-        //todo: attachment metadata
+        datastore.store_attachments(&message.id, &message.attachments).await?;
     }
 
     Ok(())

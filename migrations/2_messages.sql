@@ -11,16 +11,16 @@ create table message
     pinned      bool    not null
 ) partition by range (id);
 
-create table attachments
+create table attachment
 (
     id          bigint  not null primary key ,
     message_id  bigint  not null references message (id),
-    name        varchar not null,
-    description varchar null
+    name        bytea not null,
+    description bytea null
 );
 
 -- table for storing when we last cleaned a specific partition and what their lower bounds are
-create table cleanups
+create table cleanup
 (
     partition       int8 primary key not null,
     last_cleaned_on date             not null unique,
@@ -46,7 +46,7 @@ $$
                 execute 'create table message_partition_' || counter ||
                         ' partition of message for values from (' || lower || ') to (' || lower + increase || ')';
                 -- teach our cleanup table this partition exists
-                insert into cleanups (partition, last_cleaned_on, lower_bound)
+                insert into cleanup (partition, last_cleaned_on, lower_bound)
                 values (counter, current_date - 42 + counter, lower);
                 -- move the lower bound up a day for the next iteration
                 lower := lower + increase;
@@ -63,10 +63,10 @@ declare
     lower         bigint := 0;
 BEGIN
     -- try the replace the oldest date with today, due to the unique constraint on the table this will only work if we have not rotated yet today
-    if not (select exists(select 1 from cleanups where last_cleaned_on = current_date)) then
-        update cleanups
+    if not (select exists(select 1 from cleanup where last_cleaned_on = current_date)) then
+        update cleanup
         set last_cleaned_on=current_date
-        where last_cleaned_on = (select min(last_cleaned_on) from cleanups limit 1)
+        where last_cleaned_on = (select min(last_cleaned_on) from cleanup limit 1)
         returning partition, lower_bound into partition_var, lower;
 
         -- replace the oldest partition with a fresh one

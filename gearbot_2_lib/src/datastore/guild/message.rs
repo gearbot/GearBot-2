@@ -4,6 +4,7 @@ use crate::datastore::DatastoreResult;
 use sqlx::{query, query_as, FromRow};
 use twilight_model::channel::message::sticker::MessageSticker;
 use twilight_model::channel::message::MessageType;
+use twilight_model::channel::Attachment;
 use twilight_model::id::{ChannelId, MessageId, UserId};
 
 #[derive(FromRow)]
@@ -55,6 +56,45 @@ impl GuildDatastore<'_> {
         )
         .execute(&self.pool)
         .await?;
+
+        Ok(())
+    }
+
+    /// insert attachments for a message
+    pub async fn store_attachments(&self, message_id: &MessageId, attachments: &[Attachment]) -> DatastoreResult<()> {
+        let mut names = Vec::with_capacity(attachments.len());
+        let mut descriptions = Vec::with_capacity(attachments.len());
+        let mut ids = Vec::with_capacity(attachments.len());
+
+        for attachment in attachments {
+            names.push(encrypt_bytes(
+                attachment.filename.as_bytes(),
+                self.encryption_key,
+                attachment.id.get(),
+            ));
+            descriptions.push(encrypt_bytes(
+                attachment
+                    .description
+                    .clone()
+                    .unwrap_or_else(|| "".to_string())
+                    .as_bytes(),
+                self.encryption_key,
+                attachment.id.get(),
+            ));
+            ids.push(attachment.id.get() as i64);
+        }
+
+        query!(
+            r#"
+            INSERT INTO attachment (id, name, description, message_id) SELECT *, $1 FROM UNNEST ($2::bigint[], $3::bytea[] ,$4::bytea[])
+        "#,
+            message_id.get() as i64,
+            &ids,
+            &names,
+            &descriptions
+        )
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }
