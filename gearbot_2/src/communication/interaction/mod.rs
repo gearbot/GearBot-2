@@ -3,13 +3,13 @@ use std::sync::Arc;
 use tracing::error;
 
 use gearbot_2_lib::kafka::message::InteractionCommand;
+use gearbot_2_lib::util::GearResult;
 
 use crate::util::bot_context::BotContext;
-use crate::util::error::InteractionError;
 
 mod debug;
 
-pub type InteractionResult = Result<(), InteractionError>;
+pub type InteractionResult = GearResult<()>;
 
 pub async fn handle(token: String, command: InteractionCommand, context: Arc<BotContext>) {
     let result = match &command {

@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use actix_web::HttpResponse;
 use chrono::Utc;
+use gearbot_2_lib::util::error::GearError;
+use gearbot_2_lib::util::GearResult;
 use tracing::error;
 use twilight_model::application::callback::InteractionResponse;
 use twilight_model::application::interaction::application_command::{
@@ -11,7 +13,6 @@ use twilight_model::application::interaction::ApplicationCommand;
 use twilight_model::channel::message::MessageFlags;
 use twilight_util::builder::CallbackDataBuilder;
 
-use crate::util::CommandError;
 use crate::State;
 
 mod debug;
@@ -22,7 +23,7 @@ pub struct Reply {
     pub followup: bool,
 }
 
-pub type CommandResult = Result<Reply, CommandError>;
+pub type CommandResult = GearResult<Reply>;
 
 pub enum Commands {
     Ping,
@@ -70,7 +71,7 @@ impl Commands {
         command: Box<ApplicationCommand>,
         _options: Vec<CommandDataOption>,
         state: &Arc<State>,
-    ) -> Result<(), CommandError> {
+    ) -> GearResult<()> {
         match self {
             Commands::Ping => ping::async_followup(command, state).await?,
             Commands::Debug => debug::async_followup(command, state).await?,
@@ -236,8 +237,8 @@ fn defer_async(ephemeral: bool) -> CommandResult {
     })
 }
 
-pub fn get_required_string_value<'a>(name: &'a str, options: &'a [CommandDataOption]) -> Result<&'a str, CommandError> {
-    get_optional_string_value(name, options).ok_or_else(|| CommandError::MissingOption(name.to_string()))
+pub fn get_required_string_value<'a>(name: &'a str, options: &'a [CommandDataOption]) -> GearResult<&'a str> {
+    get_optional_string_value(name, options).ok_or_else(|| GearError::MissingOption(name.to_string()))
 }
 
 pub fn get_optional_string_value<'a>(name: &str, options: &'a [CommandDataOption]) -> Option<&'a str> {

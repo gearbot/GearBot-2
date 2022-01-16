@@ -909,8 +909,10 @@ dependencies = [
  "time 0.3.5",
  "tokio",
  "tracing",
+ "twilight-embed-builder",
  "twilight-http",
  "twilight-model",
+ "twilight-util",
  "unic-langid",
  "uuid",
 ]

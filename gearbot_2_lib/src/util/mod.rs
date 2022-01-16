@@ -1,9 +1,14 @@
+use crate::util::error::GearError;
 use std::env;
 use std::error::Error;
 use tracing::{info, warn};
 use twilight_http::client::ClientBuilder;
 use twilight_http::Client;
 use twilight_model::channel::message::AllowedMentions;
+
+pub mod error;
+
+pub type GearResult<T> = Result<T, GearError>;
 
 pub async fn get_twilight_client() -> Result<Client, Box<dyn Error + Send + Sync>> {
     let token = env::var("BOT_TOKEN")?;

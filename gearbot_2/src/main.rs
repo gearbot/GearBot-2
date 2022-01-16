@@ -18,7 +18,6 @@ use gearbot_2_lib::translations::Translator;
 use gearbot_2_lib::util::get_twilight_client;
 
 use crate::cache::Cache;
-use crate::events::on_ready;
 use crate::util::bot_context::{BotContext, BotStatus};
 use crate::util::{serve_metrics, Metrics};
 

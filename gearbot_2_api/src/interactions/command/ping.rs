@@ -1,10 +1,10 @@
-use crate::util::CommandError;
 use crate::State;
 use chrono::Utc;
 use gearbot_2_lib::translations::GearBotLangKey;
+use gearbot_2_lib::util::GearResult;
 use twilight_model::application::interaction::ApplicationCommand;
 
-pub async fn async_followup(command: Box<ApplicationCommand>, state: &State) -> Result<(), CommandError> {
+pub async fn async_followup(command: Box<ApplicationCommand>, state: &State) -> GearResult<()> {
     let start = Utc::now();
     state
         .discord_client

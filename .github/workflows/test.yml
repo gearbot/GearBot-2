@@ -7,7 +7,7 @@ on:
 env:
   CARGO_INCREMENTAL: 0
   # speeds up builds since CI debugging isnt real
-  RUSTFLAGS: -Cdebuginfo=1 # -D warnings too whenever this is further along
+  RUSTFLAGS: -Cdebuginfo=1 -Dwarnings
   # stops things from getting jammed up
   CARGO_NET_RETRY: 10
   RUSTUP_MAX_RETRIES: 10
