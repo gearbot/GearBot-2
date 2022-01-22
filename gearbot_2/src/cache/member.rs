@@ -112,7 +112,7 @@ impl Cache {
 impl Display for Member {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(name) = &self.nickname {
-            write!(f, "{} ({})) ", name, self.user.read().to_string())
+            write!(f, "{} ({})) ", name, self.user.read())
         } else {
             f.write_str(&self.user.read().to_string())
         }

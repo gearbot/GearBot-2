@@ -13,7 +13,7 @@ pub async fn run(user_id: u64, guild_id: u64, token: &str, context: &Arc<BotCont
     let user_id = UserId::new(user_id).unwrap();
 
     let member = context.get_guild_member(&guild_id, &user_id).await?;
-    let mut user = member.as_ref().map_or(None, |member| Some(member.user()));
+    let mut user = member.as_ref().map(|member| member.user());
 
     // if we don't have a user ask the api for it
     if user.is_none() {

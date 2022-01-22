@@ -81,11 +81,6 @@ impl Cache {
 
 impl Display for User {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}#{}",
-            self.name,
-            DiscriminatorDisplay::new(self.discriminator).to_string(),
-        )
+        write!(f, "{}#{}", self.name, DiscriminatorDisplay::new(self.discriminator),)
     }
 }
