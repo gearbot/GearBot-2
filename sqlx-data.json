@@ -120,6 +120,24 @@
       "nullable": []
     }
   },
+  "d342ee41c41bd7b38394e878fb33e8dfb100d66969b2608bf08b8cc542ec7ccf": {
+    "query": "select cleanup_if_needed()",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "cleanup_if_needed",
+          "type_info": "Void"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
   "d377595c5960881f32715c6202c196f8a816b466e61b650828ffde6ee3dd239e": {
     "query": "\n            INSERT INTO attachment (id, name, description, message_id) SELECT *, $1 FROM UNNEST ($2::bigint[], $3::bytea[] ,$4::bytea[])\n        ",
     "describe": {
