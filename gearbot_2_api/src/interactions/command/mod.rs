@@ -11,12 +11,14 @@ use twilight_model::application::interaction::application_command::{
 };
 use twilight_model::application::interaction::ApplicationCommand;
 use twilight_model::channel::message::MessageFlags;
+use twilight_model::id::UserId;
 use twilight_util::builder::CallbackDataBuilder;
 
 use crate::State;
 
 mod debug;
 mod ping;
+mod userinfo;
 
 pub struct Reply {
     pub response: InteractionResponse,
@@ -28,6 +30,7 @@ pub type CommandResult = GearResult<Reply>;
 pub enum Commands {
     Ping,
     Debug,
+    Userinfo,
 }
 
 impl Commands {
@@ -35,6 +38,7 @@ impl Commands {
         match data.name.as_str() {
             "ping" => Some(Self::Ping),
             "debug" => Some(Self::Debug),
+            "userinfo" => Some(Self::Userinfo),
             _ => None,
         }
     }
@@ -56,6 +60,7 @@ impl Commands {
         match self {
             Commands::Ping => defer_async(false),
             Commands::Debug => defer_async(false),
+            Commands::Userinfo => defer_async(true),
         }
     }
 
@@ -63,6 +68,7 @@ impl Commands {
         match self {
             Commands::Ping => "ping",
             Commands::Debug => "debug",
+            Commands::Userinfo => "userinfo",
         }
     }
 
@@ -75,6 +81,7 @@ impl Commands {
         match self {
             Commands::Ping => ping::async_followup(command, state).await?,
             Commands::Debug => debug::async_followup(command, state).await?,
+            Commands::Userinfo => userinfo::async_followup(command, state).await?,
         };
         Ok(())
     }
@@ -250,6 +257,21 @@ pub fn get_optional_string_value<'a>(name: &str, options: &'a [CommandDataOption
             };
         }
     }
+    None
+}
 
+pub fn get_required_user_id_value<'a>(name: &'a str, options: &'a [CommandDataOption]) -> GearResult<&'a UserId> {
+    get_optional_user_id_value(name, options).ok_or_else(|| GearError::MissingOption(name.to_string()))
+}
+
+pub fn get_optional_user_id_value<'a>(name: &str, options: &'a [CommandDataOption]) -> Option<&'a UserId> {
+    for option in options {
+        if option.name == name {
+            return match &option.value {
+                CommandOptionValue::User(value) => Some(value),
+                _ => None,
+            };
+        }
+    }
     None
 }

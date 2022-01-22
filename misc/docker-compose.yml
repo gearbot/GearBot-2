@@ -42,9 +42,9 @@ services:
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
 
-  discord-proxy:
-    image: twilightrs/http-proxy:metrics
-    container_name: discord-proxy
+  gearproxy:
+    image: gearbot/http-proxy:metrics
+    container_name: gearproxy
     ports:
       - "3000:80"
     environment:

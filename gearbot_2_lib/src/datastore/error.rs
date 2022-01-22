@@ -1,13 +1,16 @@
+use std::error::Error;
 use std::fmt::{Display, Formatter};
 
-use sqlx::Error;
+use sqlx::migrate::MigrateError;
 
 use super::guild::CURRENT_CONFIG_VERSION;
 
+#[derive(Debug)]
 pub enum DatastoreError {
     Sqlx(sqlx::Error),
     Serde(serde_json::Error),
     UnsupportedConfigVersion(i32),
+    Migration(MigrateError),
 }
 
 impl Display for DatastoreError {
@@ -20,12 +23,15 @@ impl Display for DatastoreError {
                 "Config is of version {} but this application only supports up to {} at this time",
                 v, CURRENT_CONFIG_VERSION
             ),
+            DatastoreError::Migration(e) => write!(f, "Failed to apply database migration: {}", e),
         }
     }
 }
 
+impl Error for DatastoreError {}
+
 impl From<sqlx::Error> for DatastoreError {
-    fn from(e: Error) -> Self {
+    fn from(e: sqlx::Error) -> Self {
         DatastoreError::Sqlx(e)
     }
 }
@@ -33,5 +39,11 @@ impl From<sqlx::Error> for DatastoreError {
 impl From<serde_json::Error> for DatastoreError {
     fn from(e: serde_json::Error) -> Self {
         DatastoreError::Serde(e)
+    }
+}
+
+impl From<MigrateError> for DatastoreError {
+    fn from(e: MigrateError) -> Self {
+        DatastoreError::Migration(e)
     }
 }

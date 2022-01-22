@@ -1,2 +1,7 @@
 [workspace]
 members = ["gearbot_2", "gearbot_2_api", "gearbot_2_lib"]
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = 'abort'

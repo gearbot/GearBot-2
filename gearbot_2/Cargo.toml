@@ -17,7 +17,7 @@ gearbot_2_lib = { path = "../gearbot_2_lib" }
 tokio = { default-features = false, features = ["macros", "rt-multi-thread", "sync", "time", "parking_lot"], version = "1.5" }
 parking_lot = "0.11"
 tracing = "0.1"
-tracing-subscriber = {version ="0.3", features= ["env-filter"]}
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 futures-util = "0.3"
 prometheus = "0.13"
 rdkafka = { version = "0.28", features = ["cmake-build"] }
@@ -27,6 +27,7 @@ uuid = { version = "0.8", features = ["serde", "v4"] }
 time = "0.3"
 git-version = "0.3"
 serde_json = "1.0"
+chrono = "0.4"
 
 # For local testing
 #twilight-http = {path="../../twilight/http"}

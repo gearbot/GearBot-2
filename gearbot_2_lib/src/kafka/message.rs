@@ -21,4 +21,5 @@ pub enum General {
 #[derive(Encode, Decode, Debug)]
 pub enum InteractionCommand {
     Debug { component: String, guild_id: u64 },
+    Userinfo { user_id: u64, guild_id: u64 },
 }

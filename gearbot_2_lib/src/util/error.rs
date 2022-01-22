@@ -1,26 +1,37 @@
+use twilight_embed_builder::image_source::ImageSourceUrlError;
 use twilight_embed_builder::EmbedError;
 use twilight_http::request::application::interaction::update_original_response::UpdateOriginalResponseError;
+use twilight_http::response::DeserializeBodyError;
 use twilight_http::Error;
+use twilight_model::id::UserId;
 
 use crate::datastore::DatastoreError;
 use crate::kafka::sender::KafkaSenderError;
 use crate::translations::{GearBotLangKey, Translator};
 
 pub enum GearError {
+    //User errors
     InvalidOption(String),
     MissingOption(String),
+    UnknownUser(UserId),
 
+    //System errors
     Twilight(twilight_http::Error),
     Embed(EmbedError),
     Datastore(DatastoreError),
     Serde(serde_json::Error),
     TwilightUpdateOriginal(UpdateOriginalResponseError),
     KafkaSend(KafkaSenderError),
+    DeserializeBody(DeserializeBodyError),
+    SourceImageUrl(ImageSourceUrlError),
 }
 
 impl GearError {
     pub fn is_user_error(&self) -> bool {
-        matches!(self, GearError::InvalidOption(_) | GearError::MissingOption(_))
+        matches!(
+            self,
+            GearError::InvalidOption(_) | GearError::MissingOption(_) | GearError::UnknownUser(_)
+        )
     }
 
     //Error to show to the user
@@ -35,6 +46,12 @@ impl GearError {
             GearError::MissingOption(name) => translator
                 .translate(lang_code, GearBotLangKey::MissingRequiredOption)
                 .arg("name", name.to_string())
+                .build()
+                .to_string(),
+
+            GearError::UnknownUser(id) => translator
+                .translate(lang_code, GearBotLangKey::UnknownUser)
+                .arg("userid", id.to_string())
                 .build()
                 .to_string(),
 
@@ -58,6 +75,8 @@ impl GearError {
                 e
             ),
             GearError::KafkaSend(e) => format!("Failed to send kafka message: {}", e),
+            GearError::DeserializeBody(e) => format!("Failed to deserialize the api response body: {:?}", e),
+            GearError::SourceImageUrl(e) => format!("Invalid source url in an embed: {}", e),
             // this isn't called for user errors
             _ => "SOMEONE FORGOT TO PROPERLY MAP THIS!".to_string(),
         }
@@ -97,5 +116,17 @@ impl From<UpdateOriginalResponseError> for GearError {
 impl From<KafkaSenderError> for GearError {
     fn from(e: KafkaSenderError) -> Self {
         GearError::KafkaSend(e)
+    }
+}
+
+impl From<DeserializeBodyError> for GearError {
+    fn from(e: DeserializeBodyError) -> Self {
+        GearError::DeserializeBody(e)
+    }
+}
+
+impl From<ImageSourceUrlError> for GearError {
+    fn from(e: ImageSourceUrlError) -> Self {
+        GearError::SourceImageUrl(e)
     }
 }

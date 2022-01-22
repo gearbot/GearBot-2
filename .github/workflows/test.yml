@@ -2,7 +2,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [ main ]
 
 env:
   CARGO_INCREMENTAL: 0
@@ -18,52 +18,52 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: Swatinem/rust-cache@v1
-      with: { sharedKey: "testRun-${{ matrix.os }}" }
+      - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
+        with: { sharedKey: "testRun-${{ matrix.os }}" }
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        profile: minimal
-        override: true
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
 
-    - run: cargo test --all-features --all-targets --workspace
+      - run: cargo test --all-features --all-targets --workspace
 
   checks:
     name: Clippy ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
 
     steps:
-    - uses: actions/checkout@v2
-    - uses: Swatinem/rust-cache@v1
-      with: { sharedKey: "clippyCheck-${{ matrix.os }}" }
+      - uses: actions/checkout@v2
+      - uses: Swatinem/rust-cache@v1
+        with: { sharedKey: "clippyCheck-${{ matrix.os }}" }
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        components: clippy
-        override: true
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: clippy
+          override: true
 
-    - run: cargo clippy --all-features --all-targets --workspace
+      - run: cargo clippy --all-features --all-targets --workspace
 
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        components: rustfmt
-        override: true
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          components: rustfmt
+          override: true
 
-    - name: fmt
-      run: cargo fmt --all -- --check
+      - name: fmt
+        run: cargo fmt --all -- --check

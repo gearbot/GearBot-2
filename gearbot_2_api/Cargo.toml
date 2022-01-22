@@ -10,20 +10,20 @@ actix-web = "4.0.0-beta.19"
 actix-rt = "2"
 twilight-http = "0.8"
 twilight-model = "0.8"
-twilight-util = {version= "0.8", features=["builder"]}
+twilight-util = { version = "0.8", features = ["builder"] }
 twilight-embed-builder = "0.8"
 twilight-mention = "0.8"
 serde_json = "1.0"
 ring = "0.16"
 hex = "0.4"
-gearbot_2_lib = {path = "../gearbot_2_lib"}
+gearbot_2_lib = { path = "../gearbot_2_lib" }
 chrono = "0.4"
 futures-util = "0.3"
 actix-utils = "3.0.0-beta.4"
 pin-project-lite = "0.2"
 prometheus = "0.13"
 tracing = "0.1"
-tracing-subscriber = {version ="0.3", features= ["env-filter", "fmt", "std"]}
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "std"] }
 git-version = "0.3"
 
 # for local testing
