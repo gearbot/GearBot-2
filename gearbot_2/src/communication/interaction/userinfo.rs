@@ -5,7 +5,6 @@ use gearbot_2_lib::util::error::GearError;
 use gearbot_2_lib::util::url::{assemble_guild_avatar_url, assemble_user_avatar};
 use gearbot_2_lib::util::{formatted_snowflake_timestamp, snowflake_age};
 use std::sync::Arc;
-use tracing::info;
 use twilight_embed_builder::{EmbedAuthorBuilder, EmbedBuilder, ImageSource};
 use twilight_model::id::{GuildId, UserId};
 
