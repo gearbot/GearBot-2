@@ -1,5 +1,6 @@
-use twilight_model::id::ChannelId;
 use twilight_model::voice::VoiceState as TwilightVoiceState;
+
+use gearbot_2_lib::util::markers::ChannelId;
 
 pub struct VoiceState {
     pub connected_to: ChannelId,

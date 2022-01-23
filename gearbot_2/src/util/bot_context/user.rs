@@ -1,9 +1,12 @@
+use std::sync::Arc;
+
+use twilight_http::error::ErrorType;
+
+use gearbot_2_lib::util::markers::UserId;
+use gearbot_2_lib::util::GearResult;
+
 use crate::cache::User;
 use crate::BotContext;
-use gearbot_2_lib::util::GearResult;
-use std::sync::Arc;
-use twilight_http::error::ErrorType;
-use twilight_model::id::UserId;
 
 impl BotContext {
     pub async fn get_user_info(&self, user_id: &UserId) -> GearResult<Option<Arc<User>>> {
@@ -12,7 +15,7 @@ impl BotContext {
             Ok(Some(user))
         } else {
             // try the api
-            match self.client.user(*user_id).exec().await {
+            match self.api_client.user(*user_id).exec().await {
                 Ok(response) => {
                     let user = response.model().await?;
                     Ok(Some(Arc::new(User::assemble(user, None))))

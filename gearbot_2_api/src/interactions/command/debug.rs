@@ -19,9 +19,8 @@ pub async fn async_followup(command: Box<ApplicationCommand>, state: &Arc<State>
                 .await?;
             let bytes = serde_json::to_vec_pretty(&info.config)?;
             state
-                .discord_client
+                .interaction_client()
                 .create_followup_message(&command.token)
-                .unwrap()
                 .attach(&[AttachmentFile::from_bytes("config.json", &bytes)])
                 .exec()
                 .await?;
@@ -33,6 +32,7 @@ pub async fn async_followup(command: Box<ApplicationCommand>, state: &Arc<State>
                     "gearbot_cluster_0",
                     &Message::new_interaction(
                         command.token,
+                        command.locale,
                         InteractionCommand::Debug {
                             component,
                             // safe to unwrap as it's a test command

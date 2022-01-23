@@ -1,5 +1,6 @@
 use twilight_model::guild::Emoji as TwilightEmoji;
-use twilight_model::id::RoleId;
+
+use gearbot_2_lib::util::markers::RoleId;
 
 pub struct Emoji {
     pub name: String,

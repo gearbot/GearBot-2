@@ -1,11 +1,10 @@
-use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tracing::info;
 
-use crate::util::bot_context::{BotContext, BotStatus};
+use crate::util::bot_context::{BotStatus, Context};
 
-pub fn run(time: u128, uuid: u128, context: Arc<BotContext>) {
+pub fn run(time: u128, uuid: u128, context: Context) {
     if context.uuid.as_u128() == uuid {
         info!("Received our own shutdown message, ignoring");
     } else {

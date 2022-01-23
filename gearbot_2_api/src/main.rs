@@ -7,13 +7,14 @@ use git_version::git_version;
 use ring::signature;
 use ring::signature::UnparsedPublicKey;
 use tracing::{error, info};
+use twilight_http::client::InteractionClient;
 use twilight_http::Client;
-use twilight_model::id::GuildId;
 
 use gearbot_2_lib::datastore::Datastore;
 use gearbot_2_lib::kafka::sender::KafkaSender;
 use gearbot_2_lib::translations::Translator;
 use gearbot_2_lib::util::get_twilight_client;
+use gearbot_2_lib::util::markers::{ApplicationId, GuildId};
 
 use crate::middleware::{expose_metrics, PrometheusMetrics};
 use crate::util::Metrics;
@@ -32,7 +33,8 @@ async fn hello() -> impl Responder {
 
 pub struct State {
     pub public_key: UnparsedPublicKey<Vec<u8>>,
-    pub discord_client: Client,
+    pub api_client: Client,
+    pub bot_id: ApplicationId,
     pub translator: Translator,
     pub metrics: Metrics,
     pub kafka_sender: KafkaSender,
@@ -49,6 +51,10 @@ impl State {
 
     pub fn queue_for_guild(&self, guild_id: &GuildId) -> String {
         format!("gearbot_cluster_{}", self.cluster_for_guild(guild_id))
+    }
+
+    pub fn interaction_client(&self) -> InteractionClient {
+        self.api_client.interaction(self.bot_id)
     }
 }
 
@@ -68,7 +74,7 @@ async fn main() -> std::io::Result<()> {
         .parse::<u64>()
         .expect("SHARDS_PER_CLUSTER was not a proper number");
 
-    let client = get_twilight_client()
+    let (client, bot_id) = get_twilight_client()
         .await
         .expect("Failed to construct twilight http client");
 
@@ -89,7 +95,8 @@ async fn main() -> std::io::Result<()> {
     // assemble shared state
     let inner_state = State {
         public_key,
-        discord_client: client,
+        api_client: client,
+        bot_id,
         translator,
         metrics: Metrics::new(),
         kafka_sender: KafkaSender::new(),

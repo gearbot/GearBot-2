@@ -3,13 +3,14 @@ use std::sync::Arc;
 use tracing::{trace, warn};
 use twilight_model::gateway::payload::incoming::{MemberRemove, MemberUpdate};
 use twilight_model::guild::Member as TwilightMember;
-use twilight_model::id::{GuildId, UserId};
+
+use gearbot_2_lib::util::markers::{GuildId, UserId};
 
 use crate::cache::guild::GuildCacheState;
 use crate::cache::{Member, User};
-use crate::util::bot_context::BotContext;
+use crate::util::bot_context::Context;
 
-pub fn on_member_add(member: TwilightMember, context: &Arc<BotContext>) {
+pub fn on_member_add(member: TwilightMember, context: &Context) {
     let user_id = member.user.id;
     trace!("Member {} joined {}", &user_id, &member.guild_id);
     if let Some(guild) = context.cache.get_guild(&member.guild_id) {
@@ -34,7 +35,7 @@ pub fn on_member_add(member: TwilightMember, context: &Arc<BotContext>) {
     }
 }
 
-pub fn on_member_update(member_update: MemberUpdate, context: &Arc<BotContext>) {
+pub fn on_member_update(member_update: MemberUpdate, context: &Context) {
     let user_id = member_update.user.id;
     let guild_id = member_update.guild_id;
     trace!("Member {} updated on guild {}", &user_id, &member_update.guild_id);
@@ -94,7 +95,7 @@ pub fn on_member_update(member_update: MemberUpdate, context: &Arc<BotContext>) 
     }
 }
 
-fn handle_updated_user(user_id: UserId, old_user: Arc<User>, new_user: &Arc<User>, context: &Arc<BotContext>) {
+fn handle_updated_user(user_id: UserId, old_user: Arc<User>, new_user: &Arc<User>, context: &Context) {
     //This is handled here and not in the cache itself to avoid having to loop over everything twice
     context.cache.insert_user(user_id, new_user.clone());
 
@@ -121,7 +122,7 @@ async fn log_updated_user(
     _old_user: Arc<User>,
     _new_user: Arc<User>,
     _guild_list: Vec<GuildId>,
-    _context: Arc<BotContext>,
+    _context: Context,
 ) {
 }
 
@@ -130,11 +131,11 @@ async fn log_updated_member(
     _guild_id: GuildId,
     _old_member: Arc<Member>,
     _new_member: Arc<Member>,
-    _context: Arc<BotContext>,
+    _context: Context,
 ) {
 }
 
-pub fn on_member_remove(member_remove: MemberRemove, context: &Arc<BotContext>) {
+pub fn on_member_remove(member_remove: MemberRemove, context: &Context) {
     trace!("User {} left {}", &member_remove.user.id, &member_remove.guild_id);
 
     if let Some(guild) = context.cache.get_guild(&member_remove.guild_id) {

@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Duration;
 
 use bincode::config::Configuration;
@@ -14,12 +13,12 @@ use gearbot_2_lib::kafka::listener::new_listener;
 use gearbot_2_lib::kafka::message::{General, Message};
 use gearbot_2_lib::kafka::sender::{KafkaSender, KafkaSenderError};
 
-use crate::util::bot_context::{BotContext, BotStatus};
+use crate::util::bot_context::{BotStatus, Context};
 
 mod general;
 mod interaction;
 
-pub async fn initialize_when_lonely(context: Arc<BotContext>) {
+pub async fn initialize_when_lonely(context: Context) {
     if let Err(e) = KafkaSender::new()
         .send(&context.get_queue_topic(), &Message::General(General::Hello()))
         .await
@@ -74,7 +73,7 @@ pub async fn initialize_when_lonely(context: Arc<BotContext>) {
     }
 }
 
-pub async fn initialize(context: Arc<BotContext>) -> Result<(), KafkaSenderError> {
+pub async fn initialize(context: Context) -> Result<(), KafkaSenderError> {
     info!("Initializing kafka queue communication...");
     let topic = context.get_queue_topic();
 
@@ -102,13 +101,13 @@ pub async fn initialize(context: Arc<BotContext>) -> Result<(), KafkaSenderError
     }
 }
 
-async fn receiver(listener: StreamConsumer, context: Arc<BotContext>) {
+async fn receiver(listener: StreamConsumer, context: Context) {
     loop {
         let message = listener.recv().await;
         match message {
             Ok(message) => {
                 if let Some(payload) = message.payload() {
-                    match bincode::decode_from_slice::<Message, Configuration>(payload, Configuration::standard()) {
+                    match bincode::decode_from_slice::<Message, Configuration>(payload, bincode::config::standard()) {
                         Ok((decoded_message, _)) => {
                             trace!("Received message on topic {}: {:?}", message.topic(), decoded_message);
 
@@ -140,12 +139,12 @@ async fn receiver(listener: StreamConsumer, context: Arc<BotContext>) {
     }
 }
 
-fn handle_message(message: Message, context: Arc<BotContext>) {
+fn handle_message(message: Message, context: Context) {
     match message {
         Message::General(message) => general::handle(message, context),
-        Message::Interaction { token, command } => {
+        Message::Interaction { token, locale, command } => {
             if context.is_status(BotStatus::Primary) {
-                tokio::spawn(interaction::handle(token, command, context));
+                tokio::spawn(interaction::handle(token, locale, command, context));
             }
         }
     }

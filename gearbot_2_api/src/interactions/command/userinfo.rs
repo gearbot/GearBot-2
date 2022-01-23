@@ -1,9 +1,12 @@
-use crate::interactions::command::get_required_user_id_value;
-use crate::State;
+use std::sync::Arc;
+
+use twilight_model::application::interaction::ApplicationCommand;
+
 use gearbot_2_lib::kafka::message::{InteractionCommand, Message};
 use gearbot_2_lib::util::GearResult;
-use std::sync::Arc;
-use twilight_model::application::interaction::ApplicationCommand;
+
+use crate::interactions::command::get_required_user_id_value;
+use crate::State;
 
 pub async fn async_followup(command: Box<ApplicationCommand>, state: &Arc<State>) -> GearResult<()> {
     let user = get_required_user_id_value("user", &command.data.options)?;
@@ -18,6 +21,7 @@ pub async fn async_followup(command: Box<ApplicationCommand>, state: &Arc<State>
             &state.queue_for_guild(&guild_id),
             &Message::Interaction {
                 token: command.token,
+                locale: command.locale,
                 command: InteractionCommand::Userinfo {
                     user_id: user.get(),
                     guild_id: guild_id.get(),

@@ -1,11 +1,13 @@
-use crate::State;
+use std::str::from_utf8;
+use std::sync::Arc;
+
 use actix_web::web::Bytes;
 use actix_web::{post, HttpRequest, HttpResponse, Responder};
 use serde_json::Error;
-use std::str::from_utf8;
-use std::sync::Arc;
 use tracing::{error, warn};
 use twilight_model::application::interaction::Interaction;
+
+use crate::State;
 
 mod command;
 

@@ -1,7 +1,15 @@
-use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
-use twilight_model::id::{GuildId, UserId};
+
+use parking_lot::RwLock;
+
+pub use channel::Channel;
+pub use emoji::Emoji;
+use gearbot_2_lib::util::markers::{GuildId, UserId};
+pub use guild::Guild;
+pub use member::Member;
+pub use role::Role;
+pub use user::User;
 
 pub mod channel;
 pub mod emoji;
@@ -10,13 +18,6 @@ pub mod member;
 pub mod role;
 pub mod user;
 pub mod voice_state;
-
-pub use channel::Channel;
-pub use emoji::Emoji;
-pub use guild::Guild;
-pub use member::Member;
-pub use role::Role;
-pub use user::User;
 
 pub struct Cache {
     guilds: RwLock<HashMap<GuildId, Arc<Guild>>>,

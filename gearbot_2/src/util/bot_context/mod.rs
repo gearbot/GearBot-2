@@ -9,13 +9,14 @@ use tokio::sync::{OnceCell, RwLock as AsyncRwLock, SetError};
 use tokio::task::JoinHandle;
 use tracing::info;
 use twilight_gateway::Cluster;
+use twilight_http::client::InteractionClient;
 use twilight_http::Client;
-use twilight_model::id::GuildId;
 use uuid::Uuid;
 
 use gearbot_2_lib::datastore::guild::GuildInfo;
 use gearbot_2_lib::datastore::Datastore;
 use gearbot_2_lib::translations::Translator;
+use gearbot_2_lib::util::markers::{ApplicationId, GuildId};
 pub use status::BotStatus;
 
 use crate::cache::Cache;
@@ -27,9 +28,12 @@ mod guilds;
 mod status;
 mod user;
 
+pub type Context = Arc<BotContext>;
+
 pub struct BotContext {
     pub translator: Translator,
-    pub client: Client,
+    pub api_client: Client,
+    pub bot_id: ApplicationId,
     pub cluster: Cluster,
     pub metrics: Metrics,
     pub cache: Cache,
@@ -51,6 +55,7 @@ pub struct BotContext {
 }
 
 impl BotContext {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         translator: Translator,
         client: Client,
@@ -59,6 +64,7 @@ impl BotContext {
         cluster_id: u16,
         shards: Range<u64>,
         total_shards: u64,
+        bot_id: ApplicationId,
     ) -> Self {
         let mut requested_guilds = HashMap::new();
         let mut pending_chunks = HashMap::new();
@@ -75,7 +81,8 @@ impl BotContext {
             .set(1);
         BotContext {
             translator,
-            client,
+            api_client: client,
+            bot_id,
             cluster,
             metrics,
             cache: Cache::new_cache(),
@@ -154,5 +161,9 @@ impl BotContext {
 
     pub fn set_receiver_handle(&self, handle: JoinHandle<()>) -> Result<(), SetError<JoinHandle<()>>> {
         self.receiver_handle.set(handle)
+    }
+
+    pub fn interaction_client(&self) -> InteractionClient {
+        self.api_client.interaction(self.bot_id)
     }
 }

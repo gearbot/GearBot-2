@@ -1,11 +1,12 @@
-use crate::datastore::crypto::{decrypt_bytes, encrypt_bytes};
-use crate::datastore::guild::GuildDatastore;
-use crate::datastore::DatastoreResult;
 use sqlx::{query, query_as, FromRow};
 use twilight_model::channel::message::sticker::MessageSticker;
 use twilight_model::channel::message::MessageType;
 use twilight_model::channel::Attachment;
-use twilight_model::id::{ChannelId, MessageId, UserId};
+
+use crate::datastore::crypto::{decrypt_bytes, encrypt_bytes};
+use crate::datastore::guild::GuildDatastore;
+use crate::datastore::DatastoreResult;
+use crate::util::markers::{ChannelId, MessageId, UserId};
 
 #[derive(FromRow)]
 struct RawStoredMessageUpdate {

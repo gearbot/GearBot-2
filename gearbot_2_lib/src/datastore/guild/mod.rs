@@ -1,5 +1,4 @@
 use std::ops::Deref;
-use twilight_model::id::GuildId;
 
 pub use config::DatabaseGuildInfo;
 pub use config::GuildConfig;
@@ -9,6 +8,7 @@ pub use config::CURRENT_CONFIG_VERSION;
 
 use crate::datastore::crypto::EncryptionKey;
 use crate::datastore::Datastore;
+use crate::util::markers::GuildId;
 
 mod config;
 mod message;

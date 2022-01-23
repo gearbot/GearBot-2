@@ -1,14 +1,15 @@
-use crate::kafka::base_kafka_config;
-use bincode::config::Configuration;
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
+use std::time::Duration;
+
 use bincode::error::EncodeError;
 use bincode::Encode;
 use rdkafka::error::KafkaError;
 use rdkafka::message::OwnedMessage;
 use rdkafka::producer::{FutureProducer, FutureRecord};
-use std::error::Error;
-use std::fmt::{Debug, Display, Formatter};
-use std::time::Duration;
 use tracing::trace;
+
+use crate::kafka::base_kafka_config;
 
 pub struct KafkaSender(FutureProducer);
 
@@ -19,7 +20,7 @@ impl KafkaSender {
         T: Encode + Sized + Debug,
     {
         trace!("Sending message to {}: {:?}", destination, payload);
-        let payload = bincode::encode_to_vec(payload, Configuration::standard())?;
+        let payload = bincode::encode_to_vec(payload, bincode::config::standard())?;
         let _ = self
             .0
             .send(

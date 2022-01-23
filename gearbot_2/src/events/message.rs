@@ -1,11 +1,12 @@
-use crate::BotContext;
-use gearbot_2_lib::datastore::guild::GuildDatastore;
-use gearbot_2_lib::util::GearResult;
-use std::sync::Arc;
 use tracing::info;
 use twilight_model::gateway::payload::incoming::{MessageCreate, MessageUpdate};
 
-pub async fn on_message(message: MessageCreate, context: Arc<BotContext>) -> GearResult<()> {
+use gearbot_2_lib::datastore::guild::GuildDatastore;
+use gearbot_2_lib::util::GearResult;
+
+use crate::util::bot_context::Context;
+
+pub async fn on_message(message: MessageCreate, context: Context) -> GearResult<()> {
     // we don't care about dms
     if let Some(guild_id) = &message.guild_id {
         let info = context.get_guild_info(guild_id).await?;
@@ -35,7 +36,7 @@ pub async fn on_message(message: MessageCreate, context: Arc<BotContext>) -> Gea
     Ok(())
 }
 
-pub async fn on_message_update(update: MessageUpdate, context: Arc<BotContext>) -> GearResult<()> {
+pub async fn on_message_update(update: MessageUpdate, context: Context) -> GearResult<()> {
     if let Some(guild_id) = &update.guild_id {
         let info = context.get_guild_info(guild_id).await?;
 

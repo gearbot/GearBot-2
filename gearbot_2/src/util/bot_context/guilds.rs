@@ -2,14 +2,14 @@ use std::sync::Arc;
 
 use tracing::{error, info};
 use twilight_http::error::ErrorType;
-use twilight_model::id::{GuildId, UserId};
+
+use gearbot_2_lib::datastore::guild::GuildInfo;
+use gearbot_2_lib::datastore::DatastoreResult;
+use gearbot_2_lib::util::markers::{GuildId, UserId};
+use gearbot_2_lib::util::GearResult;
 
 use crate::cache::guild::GuildCacheState;
 use crate::cache::Member;
-use gearbot_2_lib::datastore::guild::GuildInfo;
-use gearbot_2_lib::datastore::DatastoreResult;
-use gearbot_2_lib::util::GearResult;
-
 use crate::util::bot_context::BotContext;
 
 impl BotContext {
@@ -80,7 +80,7 @@ impl BotContext {
                     Ok(None)
                 } else {
                     // incomplete cache, fall back to asking the api
-                    match self.client.guild_member(*guild_id, *user_id).exec().await {
+                    match self.api_client.guild_member(*guild_id, *user_id).exec().await {
                         // member received from the api
                         Ok(response) => {
                             // get the user modal and convert to a cache member

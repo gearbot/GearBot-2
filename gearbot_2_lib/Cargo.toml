@@ -10,10 +10,11 @@ fluent-bundle = "0.15"
 intl-memoizer = "0.5"
 unic-langid = "0.9"
 tracing = "0.1"
-twilight-http = "0.8"
-twilight-model = "0.8"
-twilight-util = { version = "0.8", features = ["builder", "snowflake"] }
-twilight-embed-builder = "0.8"
+twilight-http = "0.9"
+twilight-model = "0.9"
+twilight-util = { version = "0.9", features = ["builder", "snowflake"] }
+twilight-embed-builder = "0.9"
+twilight-validate = "0.9"
 rdkafka = { version = "0.28", features = ["cmake-build"] }
 bincode = { version = "2.0.0-alpha.2", features = ["serde"] }
 tokio = "1.15"

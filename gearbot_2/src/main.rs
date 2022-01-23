@@ -56,7 +56,7 @@ async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let clusters = 1;
     let shards_per_cluster = 1;
 
-    let client = get_twilight_client().await?;
+    let (client, bot_id) = get_twilight_client().await?;
     let translator = Translator::new("translations", "en_US".to_string());
 
     let intents = Intents::GUILDS
@@ -66,7 +66,7 @@ async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
         | Intents::GUILD_VOICE_STATES
         | Intents::GUILD_MESSAGES
         | Intents::DIRECT_MESSAGES;
-    let (cluster, mut events) = ClusterBuilder::new(client.token().unwrap(), intents)
+    let (cluster, mut events) = ClusterBuilder::new(client.token().unwrap().to_string(), intents)
         .shard_scheme(ShardScheme::try_from((
             (cluster_id * shards_per_cluster..(cluster_id + 1) * shards_per_cluster),
             shards_per_cluster * clusters,
@@ -105,6 +105,7 @@ async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
         cluster_id as u16,
         cluster_id * shards_per_cluster..(cluster_id + 1) * shards_per_cluster,
         shards_per_cluster * clusters,
+        bot_id,
     ));
 
     // initialize kafka message listener whenever possible

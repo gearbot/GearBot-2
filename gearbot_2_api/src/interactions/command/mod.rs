@@ -2,8 +2,6 @@ use std::sync::Arc;
 
 use actix_web::HttpResponse;
 use chrono::Utc;
-use gearbot_2_lib::util::error::GearError;
-use gearbot_2_lib::util::GearResult;
 use tracing::error;
 use twilight_model::application::callback::InteractionResponse;
 use twilight_model::application::interaction::application_command::{
@@ -11,8 +9,11 @@ use twilight_model::application::interaction::application_command::{
 };
 use twilight_model::application::interaction::ApplicationCommand;
 use twilight_model::channel::message::MessageFlags;
-use twilight_model::id::UserId;
 use twilight_util::builder::CallbackDataBuilder;
+
+use gearbot_2_lib::util::error::GearError;
+use gearbot_2_lib::util::markers::UserId;
+use gearbot_2_lib::util::GearResult;
 
 use crate::State;
 
@@ -172,6 +173,7 @@ pub async fn handle_command(interaction: Box<ApplicationCommand>, state: Arc<Sta
             let token = interaction.token.clone();
             actix_rt::spawn(async move {
                 let start = Utc::now();
+                let locale = interaction.locale.clone();
                 let result = to_execute.async_followup(interaction, options, &state).await;
 
                 let duration = Utc::now() - start;
@@ -188,11 +190,10 @@ pub async fn handle_command(interaction: Box<ApplicationCommand>, state: Arc<Sta
 
                         // send an error followup to the requester
                         if let Err(e) = state
-                            .discord_client
+                            .interaction_client()
                             .create_followup_message(&token)
+                            .content(&e.get_user_error(&state.translator, &locale))
                             .unwrap()
-                            //TODO: replace with actual lang once available
-                            .content(&e.get_user_error(&state.translator, "en_us"))
                             .ephemeral(true)
                             .exec()
                             .await

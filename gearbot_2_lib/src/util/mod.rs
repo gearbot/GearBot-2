@@ -1,20 +1,24 @@
-use crate::translations::{GearBotLangKey, Translator};
-use crate::util::error::GearError;
-use chrono::{DateTime, NaiveDateTime, Utc};
 use std::env;
 use std::error::Error;
+
+use chrono::{DateTime, NaiveDateTime, Utc};
 use tracing::{info, warn};
 use twilight_http::client::ClientBuilder;
 use twilight_http::Client;
 use twilight_model::channel::message::AllowedMentions;
 use twilight_util::snowflake::Snowflake;
 
+use crate::translations::{GearBotLangKey, Translator};
+use crate::util::error::GearError;
+use crate::util::markers::ApplicationId;
+
 pub mod error;
+pub mod markers;
 pub mod url;
 
 pub type GearResult<T> = Result<T, GearError>;
 
-pub async fn get_twilight_client() -> Result<Client, Box<dyn Error + Send + Sync>> {
+pub async fn get_twilight_client<'a>() -> Result<(Client, ApplicationId), Box<dyn Error + Send + Sync>> {
     let token = env::var("BOT_TOKEN")?;
     let mut builder = ClientBuilder::new()
         .token(token)
@@ -44,9 +48,7 @@ pub async fn get_twilight_client() -> Result<Client, Box<dyn Error + Send + Sync
         bot.id
     );
 
-    client.set_application_id(bot.id);
-
-    Ok(client)
+    Ok((client, bot.id))
 }
 
 pub fn snowflake_timestamp(snowflake: &dyn Snowflake) -> DateTime<Utc> {
