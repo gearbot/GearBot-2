@@ -25,6 +25,7 @@ use crate::Metrics;
 mod cluster_info;
 mod guilds;
 mod status;
+mod user;
 
 pub struct BotContext {
     pub translator: Translator,

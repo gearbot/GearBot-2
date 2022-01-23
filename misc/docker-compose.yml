@@ -25,7 +25,7 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_LOG_RETENTION_MS: 300000
+      KAFKA_LOG_RETENTION_MS: 3000000
       KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: 60000
 
 
@@ -42,9 +42,9 @@ services:
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
 
-  discord-proxy:
-    image: twilightrs/http-proxy:metrics
-    container_name: discord-proxy
+  gearproxy:
+    image: gearbot/http-proxy:metrics
+    container_name: gearproxy
     ports:
       - "3000:80"
     environment:

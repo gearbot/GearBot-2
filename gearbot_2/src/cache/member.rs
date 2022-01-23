@@ -1,16 +1,18 @@
 use crate::cache::User;
+use crate::Cache;
 use parking_lot::RwLock;
+use std::fmt::{Display, Formatter};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use twilight_model::datetime::Timestamp;
 use twilight_model::gateway::payload::incoming::MemberUpdate;
 use twilight_model::guild::Member as TwilightMember;
-use twilight_model::id::RoleId;
+use twilight_model::id::{GuildId, RoleId, UserId};
 
 pub struct Member {
     user: RwLock<Arc<User>>,
     pub nickname: Option<String>,
-    avatar: Option<String>,
+    pub avatar: Option<String>,
     pub roles: Vec<RoleId>,
     pub joined_at: Timestamp, // TODO: does this work well enough now or does this need converting?
     pub pending: bool,
@@ -95,5 +97,24 @@ impl Member {
 
     pub fn get_mutual_guilds(&self) -> u8 {
         self.user.read().mutual_guilds.load(Ordering::SeqCst)
+    }
+}
+
+impl Cache {
+    pub fn get_guild_member(&self, guild_id: &GuildId, user_id: &UserId) -> Option<Arc<Member>> {
+        self.guilds
+            .read()
+            .get(guild_id)
+            .and_then(|guild| guild.get_member(user_id))
+    }
+}
+
+impl Display for Member {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if let Some(name) = &self.nickname {
+            write!(f, "{} ({})) ", name, self.user.read())
+        } else {
+            f.write_str(&self.user.read().to_string())
+        }
     }
 }

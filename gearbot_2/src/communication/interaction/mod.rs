@@ -3,17 +3,21 @@ use std::sync::Arc;
 use tracing::error;
 
 use gearbot_2_lib::kafka::message::InteractionCommand;
+use gearbot_2_lib::util::GearResult;
 
 use crate::util::bot_context::BotContext;
-use crate::util::error::InteractionError;
 
 mod debug;
+mod userinfo;
 
-pub type InteractionResult = Result<(), InteractionError>;
+pub type InteractionResult = GearResult<()>;
 
 pub async fn handle(token: String, command: InteractionCommand, context: Arc<BotContext>) {
     let result = match &command {
         InteractionCommand::Debug { component, guild_id } => debug::run(component, guild_id, &token, &context).await,
+        InteractionCommand::Userinfo { user_id, guild_id } => {
+            userinfo::run(*user_id, *guild_id, &token, &context).await
+        }
     };
 
     if let Err(error) = result {

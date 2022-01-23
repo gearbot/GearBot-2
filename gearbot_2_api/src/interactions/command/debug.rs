@@ -4,12 +4,12 @@ use twilight_http::request::AttachmentFile;
 use twilight_model::application::interaction::ApplicationCommand;
 
 use gearbot_2_lib::kafka::message::{InteractionCommand, Message};
+use gearbot_2_lib::util::GearResult;
 
 use crate::interactions::command::get_required_string_value;
-use crate::util::CommandError;
 use crate::State;
 
-pub async fn async_followup(command: Box<ApplicationCommand>, state: &Arc<State>) -> Result<(), CommandError> {
+pub async fn async_followup(command: Box<ApplicationCommand>, state: &Arc<State>) -> GearResult<()> {
     let component = get_required_string_value("component", &command.data.options)?.to_string();
     match component.as_str() {
         "guild_config" => {

@@ -1,10 +1,11 @@
 use crate::cache::Guild;
 use crate::Cache;
+use std::fmt::{Display, Formatter};
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use tracing::trace;
 use twilight_model::id::{GuildId, UserId};
-use twilight_model::user::{User as TwilightUser, UserFlags};
+use twilight_model::user::{DiscriminatorDisplay, User as TwilightUser, UserFlags};
 
 pub struct User {
     pub name: String,
@@ -75,5 +76,11 @@ impl Cache {
         for (guild_id, guild) in self.guilds.read().iter() {
             todo(guild_id, guild);
         }
+    }
+}
+
+impl Display for User {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}#{}", self.name, DiscriminatorDisplay::new(self.discriminator),)
     }
 }

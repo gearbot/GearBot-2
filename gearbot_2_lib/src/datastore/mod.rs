@@ -25,7 +25,7 @@ pub struct Datastore {
 }
 
 impl Datastore {
-    pub async fn initialize() -> Result<Self, sqlx::Error> {
+    pub async fn initialize() -> DatastoreResult<Self> {
         info!("Initializing datastore...");
         let database_url = env::var("DATABASE_URL").expect("Missing DATABASE_URL!");
         let encryption_key = env::var("ENCRYPTION_KEY").expect("Missing ENCRYPTION_KEY!");
@@ -47,10 +47,14 @@ impl Datastore {
         sqlx::migrate!("../migrations").run(&pool).await?;
         info!("Database migrations complete!");
 
-        Ok(Datastore {
+        let store = Datastore {
             master_encryption_key: EncryptionKey::construct_owned(encryption_key.as_bytes()),
             pool,
-        })
+        };
+
+        store.rotate_message_storage().await?;
+
+        Ok(store)
     }
 
     /// get the config and encryption key for a guild. if none exists one will be created.
@@ -146,5 +150,10 @@ impl Datastore {
         }
 
         Ok(result)
+    }
+
+    pub async fn rotate_message_storage(&self) -> DatastoreResult<()> {
+        query!("select cleanup_if_needed()").execute(&self.pool).await?;
+        Ok(())
     }
 }

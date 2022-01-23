@@ -1,4 +1,5 @@
 use std::ops::Deref;
+use twilight_model::id::GuildId;
 
 pub use config::DatabaseGuildInfo;
 pub use config::GuildConfig;
@@ -10,17 +11,20 @@ use crate::datastore::crypto::EncryptionKey;
 use crate::datastore::Datastore;
 
 mod config;
+mod message;
 
 pub struct GuildDatastore<'a> {
     master_datastore: &'a Datastore,
-    encryption_key: EncryptionKey<'a>,
+    encryption_key: &'a EncryptionKey<'a>,
+    guild_id: i64,
 }
 
 impl<'a> GuildDatastore<'a> {
-    pub fn new(master_datastore: &'a Datastore, encryption_key: EncryptionKey<'a>) -> Self {
+    pub fn new(master_datastore: &'a Datastore, encryption_key: &'a EncryptionKey<'a>, guild_id: &'a GuildId) -> Self {
         GuildDatastore {
             master_datastore,
             encryption_key,
+            guild_id: guild_id.get() as i64,
         }
     }
 }

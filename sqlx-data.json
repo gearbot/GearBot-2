@@ -1,5 +1,40 @@
 {
   "db": "PostgreSQL",
+  "51c8d64865ce04a989c014cb89c321e593487c09f21045d182bc2b5ce5b9b676": {
+    "query": "UPDATE message m\n        set content=$1, attachments=$2, pinned=$3\n        from message m2\n        where m.id=$4 and m.id=m2.id\n        returning m2.content, m2.attachments, m2.pinned",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "content",
+          "type_info": "Bytea"
+        },
+        {
+          "ordinal": 1,
+          "name": "attachments",
+          "type_info": "Int4"
+        },
+        {
+          "ordinal": 2,
+          "name": "pinned",
+          "type_info": "Bool"
+        }
+      ],
+      "parameters": {
+        "Left": [
+          "Bytea",
+          "Int4",
+          "Bool",
+          "Int8"
+        ]
+      },
+      "nullable": [
+        true,
+        false,
+        false
+      ]
+    }
+  },
   "72b002a1d2326f4f77d5b63fa95edeb5a8cb3bc9d4adf0f7699fc1d0e537cd18": {
     "query": "INSERT INTO guild_config (id, encryption_key, config) VALUES ($1, $2, $3)",
     "describe": {
@@ -9,6 +44,26 @@
           "Int8",
           "Bytea",
           "Jsonb"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "8ce797add68b3dcbc21385f95080ecec92d05dfd8e6464efe9fa501153f3a126": {
+    "query": "\n        INSERT INTO message\n        (id, content, author, channel, guild, stickers, type, attachments, pinned)\n        VALUES\n        ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Bytea",
+          "Int8",
+          "Int8",
+          "Int8",
+          "Jsonb",
+          "Int4",
+          "Int4",
+          "Bool"
         ]
       },
       "nullable": []
@@ -60,6 +115,39 @@
         "Left": [
           "Jsonb",
           "Int8"
+        ]
+      },
+      "nullable": []
+    }
+  },
+  "d342ee41c41bd7b38394e878fb33e8dfb100d66969b2608bf08b8cc542ec7ccf": {
+    "query": "select cleanup_if_needed()",
+    "describe": {
+      "columns": [
+        {
+          "ordinal": 0,
+          "name": "cleanup_if_needed",
+          "type_info": "Void"
+        }
+      ],
+      "parameters": {
+        "Left": []
+      },
+      "nullable": [
+        null
+      ]
+    }
+  },
+  "d377595c5960881f32715c6202c196f8a816b466e61b650828ffde6ee3dd239e": {
+    "query": "\n            INSERT INTO attachment (id, name, description, message_id) SELECT *, $1 FROM UNNEST ($2::bigint[], $3::bytea[] ,$4::bytea[])\n        ",
+    "describe": {
+      "columns": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8Array",
+          "ByteaArray",
+          "ByteaArray"
         ]
       },
       "nullable": []

@@ -8,6 +8,7 @@ use ring::signature;
 use ring::signature::UnparsedPublicKey;
 use tracing::{error, info};
 use twilight_http::Client;
+use twilight_model::id::GuildId;
 
 use gearbot_2_lib::datastore::Datastore;
 use gearbot_2_lib::kafka::sender::KafkaSender;
@@ -36,6 +37,19 @@ pub struct State {
     pub metrics: Metrics,
     pub kafka_sender: KafkaSender,
     pub datastore: Datastore,
+    pub clusters: u64,
+    pub shards_per_cluster: u64,
+}
+
+impl State {
+    pub fn cluster_for_guild(&self, guild_id: &GuildId) -> u64 {
+        let shard_id = (guild_id.get() >> 22) % (self.clusters * self.shards_per_cluster);
+        shard_id / self.shards_per_cluster
+    }
+
+    pub fn queue_for_guild(&self, guild_id: &GuildId) -> String {
+        format!("gearbot_cluster_{}", self.cluster_for_guild(guild_id))
+    }
 }
 
 #[actix_web::main]
@@ -45,6 +59,14 @@ async fn main() -> std::io::Result<()> {
 
     // reading env variables
     let hex_signature = env::var("PUBLIC_KEY").expect("Missing PUBLIC_KEY env variable!");
+    let clusters = env::var("CLUSTERS")
+        .expect("Missing CLUSTERS env variable!")
+        .parse::<u64>()
+        .expect("CLUSTERS was not a proper number");
+    let shards_per_cluster = env::var("SHARDS_PER_CLUSTER")
+        .expect("Missing SHARDS_PER_CLUSTER env variable!")
+        .parse::<u64>()
+        .expect("SHARDS_PER_CLUSTER was not a proper number");
 
     let client = get_twilight_client()
         .await
@@ -72,6 +94,8 @@ async fn main() -> std::io::Result<()> {
         metrics: Metrics::new(),
         kafka_sender: KafkaSender::new(),
         datastore,
+        clusters,
+        shards_per_cluster,
     };
     let state = Arc::new(inner_state);
 

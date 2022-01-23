@@ -2,6 +2,21 @@
 // Using an enum to easily keep track of what is and isn't used.
 // Logs should not be translated.
 pub enum GearBotLangKey {
+    //General
+    UserId,
+
+    //Time
+    Years,
+    Months,
+    Weeks,
+    Days,
+    Hours,
+    Minutes,
+    Seconds,
+
+    //Userinfo command
+    UserinfoUser,
+
     //Ping command
     PingCalculating,
     PingCalculated,
@@ -13,6 +28,7 @@ pub enum GearBotLangKey {
     GenericSystemError,
     MissingRequiredOption,
     InvalidOption,
+    UnknownUser,
 }
 
 impl GearBotLangKey {
@@ -24,6 +40,16 @@ impl GearBotLangKey {
             GearBotLangKey::MissingRequiredOption => "missing_required_option",
             GearBotLangKey::InvalidOption => "invalid_option",
             GearBotLangKey::DebugLocalization => "debug_localization",
+            GearBotLangKey::UnknownUser => "unknown_user",
+            GearBotLangKey::UserId => "user_id",
+            GearBotLangKey::Years => "years",
+            GearBotLangKey::Months => "months",
+            GearBotLangKey::Weeks => "weeks",
+            GearBotLangKey::Days => "days",
+            GearBotLangKey::Hours => "hours",
+            GearBotLangKey::Minutes => "minutes",
+            GearBotLangKey::Seconds => "seconds",
+            GearBotLangKey::UserinfoUser => "user_info_user",
         }
     }
 }

@@ -4,25 +4,21 @@ use intl_memoizer::concurrent::IntlLangMemoizer;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
-use std::fs::File;
-use std::io::{BufRead, BufReader};
-use std::sync::Arc;
 use tracing::{debug, error, info, trace, warn};
 use unic_langid::LanguageIdentifier;
 
-const FAILED_TRANSLATE_FALLBACK_MSG: &str =
-    "Translation failure occurred: unable to localise '{}'. This is a bug and has been logged as such.";
+const FAILED_TRANSLATE_FALLBACK_MSG: &str = "Translation failure occurred: unable to localise '{}'.";
 
 type FluentBundle = RawBundle<FluentResource, IntlLangMemoizer>;
 
 pub struct Translator {
-    translations: HashMap<String, Arc<FluentBundle>>,
+    translations: HashMap<String, FluentBundle>,
     master_lang: String,
 }
 
 pub struct MessageTranslator<'a> {
     key: GearBotLangKey,
-    bundle: Arc<FluentBundle>,
+    bundle: &'a FluentBundle,
     message: Option<FluentMessage<'a>>,
     args: Option<FluentArgs<'a>>,
 }
@@ -66,36 +62,32 @@ impl Translator {
                     let file = file_result.expect("Failed to get file metadata from dir");
                     let file_name = file.file_name().to_string_lossy().to_string();
                     trace!("Loading file {}", file_name);
-                    let file_content = match File::open(file.path()) {
+                    let file_content = match fs::read_to_string(file.path()) {
                         Ok(content) => content,
                         Err(e) => {
                             error!("Failed to open file {} for lang {}: {}", file_name, dir_name, e);
                             continue;
                         }
                     };
-                    let reader = BufReader::new(file_content).lines();
 
-                    for line_result in reader {
-                        let line = line_result.expect("Failed to read line");
-                        let resource = FluentResource::try_new(line.clone());
+                    let resource = FluentResource::try_new(file_content);
 
-                        match resource {
-                            Ok(resource) => {
-                                bundle
-                                    .add_resource(resource)
-                                    .unwrap_or_else(|_| panic!("Failed to add entry to the bundle: {}", &line));
-                            }
-                            Err(e) => {
-                                error!(
-                                    "Corrupt entry encountered in file {} from lang {}: {:?} ({})",
-                                    file_name, dir_name, e.1, line
-                                );
-                            }
+                    match resource {
+                        Ok(resource) => {
+                            bundle
+                                .add_resource(resource)
+                                .unwrap_or_else(|_| panic!("Failed to add file to the bundle: {}", file_name));
+                        }
+                        Err(e) => {
+                            error!(
+                                "Corrupt entry encountered in file {} from lang {}: {:?}",
+                                file_name, dir_name, e.1
+                            );
                         }
                     }
                 }
 
-                translations.insert(dir_name.to_string(), Arc::new(bundle));
+                translations.insert(dir_name.to_string(), bundle);
             } else {
                 warn!("Ignoring '{}' as it's not a valid language identifier", dir_name);
             }
@@ -116,8 +108,7 @@ impl Translator {
         }
     }
 
-    // New translator
-    pub fn translate(&self, lang: &str, key: GearBotLangKey) -> MessageTranslator {
+    pub fn get_message<'a>(&'a self, lang: &str, key: &GearBotLangKey) -> (Option<FluentMessage>, &'a FluentBundle) {
         let translation_key = key.as_str();
         let (translations, lang) = if let Some(translations) = self.translations.get(lang) {
             (translations, lang)
@@ -143,11 +134,39 @@ impl Translator {
                 .get_message(translation_key);
         }
 
+        (message, translations)
+    }
+
+    // New translator
+    pub fn translate(&self, lang: &str, key: GearBotLangKey) -> MessageTranslator {
+        let (message, bundle) = self.get_message(lang, &key);
+
         MessageTranslator {
             key,
-            bundle: translations.clone(),
+            bundle,
             message,
             args: Default::default(),
+        }
+    }
+
+    pub fn translate_without_args(&self, lang: &str, key: GearBotLangKey) -> Cow<str> {
+        let (message, bundle) = self.get_message(lang, &key);
+        if let Some(message) = message {
+            let mut errors = Vec::new();
+            let translated = bundle.format_pattern(message.value().unwrap(), None, &mut errors);
+            if errors.is_empty() {
+                translated
+            } else {
+                error!(
+                    "Translation failure(s) when translating {} without arguments: {:?}",
+                    key.as_str(),
+                    errors
+                );
+                Cow::Borrowed(FAILED_TRANSLATE_FALLBACK_MSG)
+            }
+        } else {
+            error!("Tried to translate non existing lang key: {}", key.as_str());
+            Cow::Borrowed(FAILED_TRANSLATE_FALLBACK_MSG)
         }
     }
 }

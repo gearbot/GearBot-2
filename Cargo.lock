@@ -847,6 +847,7 @@ version = "2.0.0"
 dependencies = [
  "actix-web",
  "bincode",
+ "chrono",
  "futures-util",
  "gearbot_2_lib",
  "git-version",
@@ -899,6 +900,7 @@ version = "0.1.0"
 dependencies = [
  "aes-gcm",
  "bincode",
+ "chrono",
  "fluent-bundle",
  "intl-memoizer",
  "rand",
@@ -909,8 +911,10 @@ dependencies = [
  "time 0.3.5",
  "tokio",
  "tracing",
+ "twilight-embed-builder",
  "twilight-http",
  "twilight-model",
+ "twilight-util",
  "unic-langid",
  "uuid",
 ]

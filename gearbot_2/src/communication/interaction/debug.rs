@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use gearbot_2_lib::util::error::GearError;
 use num_format::{Locale, ToFormattedString};
 use twilight_embed_builder::EmbedBuilder;
 use twilight_http::request::AttachmentFile;
@@ -7,7 +8,6 @@ use twilight_model::id::GuildId;
 
 use crate::communication::interaction::InteractionResult;
 use crate::util::bot_context::BotContext;
-use crate::util::error::InteractionError;
 
 // this is a debug command, no need to bother with translations
 pub async fn run(component: &str, guild_id: &u64, token: &str, context: &Arc<BotContext>) -> InteractionResult {
@@ -59,7 +59,7 @@ pub async fn run(component: &str, guild_id: &u64, token: &str, context: &Arc<Bot
                 .exec()
                 .await?;
         }
-        wrong => return Err(InteractionError::InvalidOption(wrong.to_string())),
+        wrong => return Err(GearError::InvalidOption(wrong.to_string())),
     }
     Ok(())
 }

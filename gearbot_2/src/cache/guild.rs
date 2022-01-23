@@ -137,6 +137,11 @@ impl Guild {
             member.add_mutual_guild();
             if stored_members.insert(member_id, member).is_none() {
                 inserted += 1;
+            } else {
+                // if the user was already in the map we incremented too much
+                // doing it this way because getting a member chunk for a user that
+                // was already cached should be extremely rare
+                stored_members.get(&member_id).unwrap().remove_mutual_guild();
             }
         }
         // update cache state
@@ -195,6 +200,10 @@ impl Guild {
 
     pub fn cache_state(&self) -> GuildCacheState {
         self.cache_state.read().clone()
+    }
+
+    pub fn is_cache_state(&self, state: GuildCacheState) -> bool {
+        *self.cache_state.read() == state
     }
 
     pub fn update_emoji(&self, emoji: Vec<TwilightEmoji>) {

@@ -6,7 +6,8 @@ use std::time::Duration;
 use actix_web::{middleware, rt, web, App, HttpServer};
 use futures_util::StreamExt;
 use git_version::git_version;
-use tracing::{info, trace};
+use tokio::time::interval;
+use tracing::{error, info, trace};
 use twilight_gateway::cluster::{ClusterBuilder, ShardScheme};
 use twilight_model::gateway::event::Event;
 use twilight_model::gateway::payload::outgoing::update_presence::UpdatePresencePayload;
@@ -18,7 +19,6 @@ use gearbot_2_lib::translations::Translator;
 use gearbot_2_lib::util::get_twilight_client;
 
 use crate::cache::Cache;
-use crate::events::on_ready;
 use crate::util::bot_context::{BotContext, BotStatus};
 use crate::util::{serve_metrics, Metrics};
 
@@ -110,6 +110,22 @@ async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
     // initialize kafka message listener whenever possible
     tokio::spawn(communication::initialize_when_lonely(context.clone()));
 
+    // cluster 0 makes sure we rotate messages in time
+    let c = context.clone();
+    let rotator = if cluster_id == 0 {
+        Some(tokio::spawn(async move {
+            let mut interval = interval(Duration::from_secs(60 * 60));
+            loop {
+                interval.tick().await;
+                if let Err(e) = c.datastore.rotate_message_storage().await {
+                    error!("Failed to rotate the message partitions: {}", e);
+                }
+            }
+        }))
+    } else {
+        None
+    };
+
     let c = context.clone();
     // start webserver on different thread
     thread::spawn(move || {
@@ -174,6 +190,11 @@ async fn async_main() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
         // update cache
         events::handle_gateway_event(id, event, &context);
+    }
+
+    // kill the message rotator for faster shutdown
+    if let Some(handle) = rotator {
+        handle.abort();
     }
 
     info!("Bot event loop terminated, giving the final background tasks 30 seconds to finish up...");
