@@ -1,13 +1,11 @@
 use std::sync::atomic::Ordering;
-use std::sync::Arc;
-
 use tracing::{error, warn};
 use twilight_model::gateway::payload::incoming::Ready;
 
 use crate::events::guild::request_next_guild;
-use crate::util::bot_context::BotContext;
+use crate::util::bot_context::Context;
 
-pub fn on_ready(ready: Ready, shard: u64, context: Arc<BotContext>) {
+pub fn on_ready(ready: Ready, shard: u64, context: Context) {
     // make sure we don't think we are waiting on chunks. This only gets fired on new connections
     // so there can't be pending chunks on their way. We will get fresh creates for all guilds
     // so that will kick off the actual requesting.
@@ -31,7 +29,7 @@ pub fn on_ready(ready: Ready, shard: u64, context: Arc<BotContext>) {
     });
 }
 
-pub fn on_resume(shard: u64, context: &Arc<BotContext>) {
+pub fn on_resume(shard: u64, context: &Context) {
     if context.has_requested_guilds(&shard) {
         error!("We have guilds queued up for member requesting, but got interrupted by a disconnect, resuming chunk requests");
         tokio::spawn(request_next_guild(shard, context.clone()));

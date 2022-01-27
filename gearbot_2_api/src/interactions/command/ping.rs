@@ -1,30 +1,30 @@
-use crate::State;
 use chrono::Utc;
+use twilight_model::application::interaction::ApplicationCommand;
+
 use gearbot_2_lib::translations::GearBotLangKey;
 use gearbot_2_lib::util::GearResult;
-use twilight_model::application::interaction::ApplicationCommand;
+
+use crate::State;
 
 pub async fn async_followup(command: Box<ApplicationCommand>, state: &State) -> GearResult<()> {
     let start = Utc::now();
     state
-        .discord_client
+        .interaction_client()
         .create_followup_message(&command.token)
-        .unwrap()
         .content(
             &state
                 .translator
                 .translate("en_US", GearBotLangKey::PingCalculating)
                 .build(),
-        )
+        )?
         .exec()
         .await?;
     let after = Utc::now() - start;
     let milli = after.num_milliseconds();
 
     state
-        .discord_client
+        .interaction_client()
         .update_interaction_original(&command.token)
-        .unwrap()
         .content(Some(
             &state
                 .translator

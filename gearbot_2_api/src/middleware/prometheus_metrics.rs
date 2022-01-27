@@ -7,14 +7,14 @@ use std::{
 };
 
 use actix_utils::future::{ready, Ready};
-
-use crate::State;
 use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::{body::MessageBody, get, Error, HttpRequest, HttpResponse, Responder, Result};
 use chrono::{DateTime, Utc};
 use futures_util::ready;
 use pin_project_lite::pin_project;
 use prometheus::{Encoder, TextEncoder};
+
+use crate::State;
 
 pub struct PrometheusMetrics(Arc<State>);
 
@@ -98,7 +98,7 @@ where
 {
     type Output = Result<ServiceResponse<B>, Error>;
 
-    fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(self: Pin<&mut Self>, cx: &mut Context) -> Poll<Self::Output> {
         let this = self.project();
 
         let res = match ready!(this.fut.poll(cx)) {

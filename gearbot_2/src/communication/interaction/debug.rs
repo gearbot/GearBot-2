@@ -1,16 +1,15 @@
-use std::sync::Arc;
-
-use gearbot_2_lib::util::error::GearError;
 use num_format::{Locale, ToFormattedString};
 use twilight_embed_builder::EmbedBuilder;
 use twilight_http::request::AttachmentFile;
-use twilight_model::id::GuildId;
+
+use gearbot_2_lib::util::error::GearError;
+use gearbot_2_lib::util::markers::GuildId;
 
 use crate::communication::interaction::InteractionResult;
-use crate::util::bot_context::BotContext;
+use crate::util::bot_context::Context;
 
 // this is a debug command, no need to bother with translations
-pub async fn run(component: &str, guild_id: &u64, token: &str, context: &Arc<BotContext>) -> InteractionResult {
+pub async fn run(component: &str, guild_id: &u64, token: &str, locale: &str, context: &Context) -> InteractionResult {
     match component {
         "cache" => {
             let mut guilds = 0;
@@ -27,10 +26,8 @@ pub async fn run(component: &str, guild_id: &u64, token: &str, context: &Arc<Bot
                 emoji += guild.get_emoji_count();
                 roles += guild.get_role_count()
             });
-            //TODO: use actual locale later
-            let locale = Locale::nl_BE;
-            context.client.create_followup_message(token)
-                .unwrap()
+            let locale = Locale::from_name(locale).unwrap_or(Locale::en_US_POSIX);
+            context.interaction_client().create_followup_message(token)
                 .embeds(
                     &[EmbedBuilder::new()
                         .title("Cache statistics")
@@ -44,17 +41,16 @@ pub async fn run(component: &str, guild_id: &u64, token: &str, context: &Arc<Bot
                             users.to_formatted_string(&locale))
                         )
                         .build()?]
-                )
+                )?
                 .exec()
                 .await?;
         }
         "guild_config_bot" => {
-            let info = context.get_guild_info(&GuildId::new(*guild_id).unwrap()).await?;
+            let info = context.get_guild_info(&GuildId::new(*guild_id)).await?;
             let bytes = serde_json::to_vec_pretty(&info.config)?;
             context
-                .client
+                .interaction_client()
                 .create_followup_message(token)
-                .unwrap()
                 .attach(&[AttachmentFile::from_bytes("config.json", &bytes)])
                 .exec()
                 .await?;

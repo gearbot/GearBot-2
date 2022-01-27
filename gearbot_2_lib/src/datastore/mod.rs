@@ -5,12 +5,12 @@ use std::time::Duration;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{query, query_as, PgPool, Postgres, Transaction as SqlxTransaction};
 use tracing::info;
-use twilight_model::id::GuildId;
 
 pub use error::DatastoreError;
 
 use crate::datastore::crypto::EncryptionKey;
 use crate::datastore::guild::{DatabaseGuildInfo, GuildConfig, GuildConfigWrapper, GuildInfo};
+use crate::util::markers::GuildId;
 
 mod crypto;
 mod error;
@@ -145,7 +145,7 @@ impl Datastore {
         // map the results for returning
         for info in info_holders {
             // safe to unwrap, we requested them based on GuildId so it can't have been 0
-            let guild_id = GuildId::new(info.id as u64).unwrap();
+            let guild_id = GuildId::new(info.id as u64);
             result.insert(guild_id, info.into_config_and_key()?);
         }
 

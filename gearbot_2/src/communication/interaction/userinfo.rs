@@ -1,16 +1,17 @@
-use crate::communication::interaction::InteractionResult;
-use crate::BotContext;
+use twilight_embed_builder::{EmbedAuthorBuilder, EmbedBuilder, ImageSource};
+
 use gearbot_2_lib::translations::GearBotLangKey;
 use gearbot_2_lib::util::error::GearError;
+use gearbot_2_lib::util::markers::{GuildId, UserId};
 use gearbot_2_lib::util::url::{assemble_guild_avatar_url, assemble_user_avatar};
 use gearbot_2_lib::util::{formatted_snowflake_timestamp, snowflake_age};
-use std::sync::Arc;
-use twilight_embed_builder::{EmbedAuthorBuilder, EmbedBuilder, ImageSource};
-use twilight_model::id::{GuildId, UserId};
 
-pub async fn run(user_id: u64, guild_id: u64, token: &str, context: &Arc<BotContext>) -> InteractionResult {
-    let guild_id = GuildId::new(guild_id).unwrap();
-    let user_id = UserId::new(user_id).unwrap();
+use crate::communication::interaction::InteractionResult;
+use crate::util::bot_context::Context;
+
+pub async fn run(user_id: u64, guild_id: u64, token: &str, locale: &str, context: &Context) -> InteractionResult {
+    let guild_id = GuildId::new(guild_id);
+    let user_id = UserId::new(user_id);
 
     let member = context.get_guild_member(&guild_id, &user_id).await?;
     let mut user = member.as_ref().map(|member| member.user());
@@ -24,18 +25,16 @@ pub async fn run(user_id: u64, guild_id: u64, token: &str, context: &Arc<BotCont
         let mut builder = EmbedBuilder::new();
 
         let user_avatar = assemble_user_avatar(&user_id, user.discriminator, user.avatar.as_ref());
-        let big_avatar = member.as_ref().map(|member| member.avatar.clone()).map_or_else(
+        let big_avatar = member.as_ref().map(|member| member.avatar).map_or_else(
             || user_avatar.clone(),
             |avatar| {
                 avatar.map_or_else(
                     || user_avatar.clone(),
-                    |avatar| assemble_guild_avatar_url(&guild_id, &user_id, avatar.as_ref()),
+                    |avatar| assemble_guild_avatar_url(&guild_id, &user_id, &avatar),
                 )
             },
         );
 
-        //TODO: actual locale
-        let locale = "en_US";
         builder = builder
             .author(
                 EmbedAuthorBuilder::new(
@@ -57,10 +56,9 @@ pub async fn run(user_id: u64, guild_id: u64, token: &str, context: &Arc<BotCont
             );
 
         context
-            .client
+            .interaction_client()
             .create_followup_message(token)
-            .unwrap()
-            .embeds(&[builder.build()?])
+            .embeds(&[builder.build()?])?
             .exec()
             .await?;
     } else {

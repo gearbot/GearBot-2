@@ -1,8 +1,12 @@
-use crate::Cache;
 use std::sync::Arc;
+
 use tracing::error;
 use twilight_model::guild::{Permissions, Role as TwilightRole};
-use twilight_model::id::{GuildId, RoleId};
+use twilight_model::util::ImageHash;
+
+use gearbot_2_lib::util::markers::{GuildId, RoleId};
+
+use crate::Cache;
 
 pub struct Role {
     // cache role id as well since we need it for role ordering
@@ -10,7 +14,7 @@ pub struct Role {
     pub name: String,
     pub color: u32,
     pub hoisted: bool,
-    pub icon: Option<String>,
+    pub icon: Option<ImageHash>,
     pub emoji: Option<String>,
     pub position: i64,
     pub permissions: Permissions,

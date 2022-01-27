@@ -1,6 +1,7 @@
-use crate::kafka::base_kafka_config;
 use rdkafka::consumer::{Consumer, StreamConsumer};
 use rdkafka::error::KafkaError;
+
+use crate::kafka::base_kafka_config;
 
 pub fn new_listener(topics: &[&str], group_id: &str) -> Result<StreamConsumer, KafkaError> {
     let mut config = base_kafka_config();

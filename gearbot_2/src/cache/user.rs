@@ -1,16 +1,20 @@
-use crate::cache::Guild;
-use crate::Cache;
 use std::fmt::{Display, Formatter};
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
+
 use tracing::trace;
-use twilight_model::id::{GuildId, UserId};
 use twilight_model::user::{DiscriminatorDisplay, User as TwilightUser, UserFlags};
+use twilight_model::util::ImageHash;
+
+use gearbot_2_lib::util::markers::{GuildId, UserId};
+
+use crate::cache::Guild;
+use crate::Cache;
 
 pub struct User {
     pub name: String,
     pub discriminator: u16,
-    pub avatar: Option<String>,
+    pub avatar: Option<ImageHash>,
     pub bot: bool,
     //not caching system tag since these can't be members of a guild
     //todo: add banner once available to bots

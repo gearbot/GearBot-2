@@ -1,10 +1,13 @@
-use crate::Cache;
 use std::sync::Arc;
+
 use tracing::error;
 use twilight_model::channel::permission_overwrite::PermissionOverwrite;
 use twilight_model::channel::thread::ThreadMetadata;
 use twilight_model::channel::{ChannelType, GuildChannel};
-use twilight_model::id::{ChannelId, GuildId};
+
+use gearbot_2_lib::util::markers::{ChannelId, GuildId};
+
+use crate::Cache;
 
 pub struct Channel {
     pub channel_type: ChannelType,

@@ -3,12 +3,16 @@ use bincode::{Decode, Encode};
 #[derive(Encode, Decode, Debug)]
 pub enum Message {
     General(General),
-    Interaction { token: String, command: InteractionCommand },
+    Interaction {
+        token: String,
+        locale: String,
+        command: InteractionCommand,
+    },
 }
 
 impl Message {
-    pub fn new_interaction(token: String, command: InteractionCommand) -> Self {
-        Message::Interaction { token, command }
+    pub fn new_interaction(token: String, locale: String, command: InteractionCommand) -> Self {
+        Message::Interaction { token, locale, command }
     }
 }
 

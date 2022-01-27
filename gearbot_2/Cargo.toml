@@ -6,13 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-web = "4.0.0-beta.19"
-twilight-http = "0.8"
-twilight-gateway = "0.8"
-twilight-model = "0.8"
-twilight-util = "0.8"
-twilight-embed-builder = "0.8"
-twilight-mention = "0.8"
+actix-web = "4.0.0-beta.21"
+twilight-http = "0.9"
+twilight-gateway = "0.9"
+twilight-model = "0.9"
+twilight-util = "0.9"
+twilight-embed-builder = "0.9"
+twilight-mention = "0.9"
 gearbot_2_lib = { path = "../gearbot_2_lib" }
 tokio = { default-features = false, features = ["macros", "rt-multi-thread", "sync", "time", "parking_lot"], version = "1.5" }
 parking_lot = "0.11"

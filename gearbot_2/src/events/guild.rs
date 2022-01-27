@@ -6,17 +6,17 @@ use tracing::{debug, error, info, trace, warn};
 use twilight_model::gateway::payload::incoming::{GuildDelete, MemberChunk};
 use twilight_model::gateway::payload::outgoing::request_guild_members::RequestGuildMembersBuilder;
 use twilight_model::guild::{Guild as TwilightGuild, PartialGuild};
-use twilight_model::id::GuildId;
 
 use gearbot_2_lib::kafka::message::{General, Message};
 use gearbot_2_lib::kafka::sender::KafkaSender;
+use gearbot_2_lib::util::markers::GuildId;
 
 use crate::cache::guild::GuildCacheState;
 use crate::cache::{Guild, Member};
-use crate::util::bot_context::BotContext;
+use crate::util::bot_context::Context;
 use crate::{communication, BotStatus};
 
-pub fn on_guild_create(shard: u64, guild: TwilightGuild, context: &Arc<BotContext>) {
+pub fn on_guild_create(shard: u64, guild: TwilightGuild, context: &Context) {
     let guild_id = guild.id;
     let new: Arc<Guild> = Arc::new(guild.into());
     context
@@ -26,7 +26,7 @@ pub fn on_guild_create(shard: u64, guild: TwilightGuild, context: &Arc<BotContex
     tokio::spawn(new_guild_processor(shard, guild_id, new, context.clone()));
 }
 
-pub fn on_guild_update(guild: PartialGuild, context: &Arc<BotContext>) {
+pub fn on_guild_update(guild: PartialGuild, context: &Context) {
     let id = guild.id;
     if let (Some(_old), Some(_new)) = context.cache.update_guild(guild.id, guild) {
         trace!("Updated a guild");
@@ -35,7 +35,7 @@ pub fn on_guild_update(guild: PartialGuild, context: &Arc<BotContext>) {
     }
 }
 
-pub fn on_guild_delete(shard: u64, event: GuildDelete, context: &Arc<BotContext>) {
+pub fn on_guild_delete(shard: u64, event: GuildDelete, context: &Context) {
     let old = context
         .cache
         .remove_guild(shard, event.id, event.unavailable, &context.metrics);
@@ -53,7 +53,7 @@ pub fn on_guild_delete(shard: u64, event: GuildDelete, context: &Arc<BotContext>
     }
 }
 
-pub fn on_member_chunk(shard: u64, chunk: MemberChunk, context: &Arc<BotContext>) {
+pub fn on_member_chunk(shard: u64, chunk: MemberChunk, context: &Context) {
     let member_count = chunk.members.len();
     trace!(
         "Received chunk {}/{} for guild {} with {} members",
@@ -114,7 +114,7 @@ pub fn on_member_chunk(shard: u64, chunk: MemberChunk, context: &Arc<BotContext>
 }
 
 // async function actually process the new guild
-async fn new_guild_processor(shard: u64, guild_id: GuildId, _guild: Arc<Guild>, context: Arc<BotContext>) {
+async fn new_guild_processor(shard: u64, guild_id: GuildId, _guild: Arc<Guild>, context: Context) {
     // are chunks already pending for this shard?
     let atom = context.pending_chunks.get(&shard).unwrap();
     if atom.load(Ordering::SeqCst) {
@@ -129,7 +129,7 @@ async fn new_guild_processor(shard: u64, guild_id: GuildId, _guild: Arc<Guild>, 
     //todo: actually process the new guild
 }
 
-async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Arc<BotContext>) {
+async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Context) {
     if context.is_status(BotStatus::Terminating) {
         info!("Cluster is terminating but guild members where requested, canceling all pending member requests!");
         context.clear_requested_guilds();
@@ -165,7 +165,7 @@ async fn request_guild_members(shard: u64, guild_id: GuildId, context: &Arc<BotC
     // info!("Shard rate limit info after is {:?}, {}", info.ratelimit_refill(), info.ratelimit_requests());
 }
 
-pub async fn request_next_guild(shard: u64, context: Arc<BotContext>) {
+pub async fn request_next_guild(shard: u64, context: Context) {
     if let Some(guild_id) = context.get_next_requested_guild(&shard) {
         context
             .pending_chunks

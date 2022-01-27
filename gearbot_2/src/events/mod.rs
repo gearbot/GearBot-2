@@ -1,10 +1,9 @@
 use std::future::Future;
-use std::sync::Arc;
-use tracing::error;
 
-use gearbot_2_lib::util::GearResult;
+use tracing::error;
 use twilight_model::gateway::event::Event;
 
+use gearbot_2_lib::util::GearResult;
 pub use other::on_ready;
 
 use crate::events::channel::{on_channel_create, on_channel_delete, on_channel_update};
@@ -18,7 +17,7 @@ use crate::events::thread::{
     on_thread_create, on_thread_delete, on_thread_members_update, on_thread_sync, on_thread_update,
 };
 use crate::events::voice::on_voice_state_update;
-use crate::util::bot_context::BotContext;
+use crate::util::bot_context::Context;
 
 mod channel;
 mod emoji;
@@ -31,7 +30,7 @@ mod thread;
 mod voice;
 
 //Just a hub function to fan out to the relevant handlers
-pub fn handle_gateway_event(shard: u64, event: Event, context: &Arc<BotContext>) {
+pub fn handle_gateway_event(shard: u64, event: Event, context: &Context) {
     match event {
         Event::ChannelCreate(create) => on_channel_create(create.0, context),
         Event::ChannelDelete(delete) => on_channel_delete(delete.0, context),

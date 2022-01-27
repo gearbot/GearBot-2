@@ -1,18 +1,22 @@
-use crate::cache::User;
-use crate::Cache;
-use parking_lot::RwLock;
 use std::fmt::{Display, Formatter};
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
+
+use parking_lot::RwLock;
 use twilight_model::datetime::Timestamp;
 use twilight_model::gateway::payload::incoming::MemberUpdate;
 use twilight_model::guild::Member as TwilightMember;
-use twilight_model::id::{GuildId, RoleId, UserId};
+use twilight_model::util::ImageHash;
+
+use gearbot_2_lib::util::markers::{GuildId, RoleId, UserId};
+
+use crate::cache::User;
+use crate::Cache;
 
 pub struct Member {
     user: RwLock<Arc<User>>,
     pub nickname: Option<String>,
-    pub avatar: Option<String>,
+    pub avatar: Option<ImageHash>,
     pub roles: Vec<RoleId>,
     pub joined_at: Timestamp, // TODO: does this work well enough now or does this need converting?
     pub pending: bool,

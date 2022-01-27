@@ -1,5 +1,6 @@
-use rdkafka::ClientConfig;
 use std::env;
+
+use rdkafka::ClientConfig;
 
 pub mod listener;
 pub mod message;

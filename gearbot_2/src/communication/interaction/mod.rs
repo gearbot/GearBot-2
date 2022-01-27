@@ -1,22 +1,21 @@
-use std::sync::Arc;
-
 use tracing::error;
 
+use crate::util::bot_context::Context;
 use gearbot_2_lib::kafka::message::InteractionCommand;
 use gearbot_2_lib::util::GearResult;
-
-use crate::util::bot_context::BotContext;
 
 mod debug;
 mod userinfo;
 
 pub type InteractionResult = GearResult<()>;
 
-pub async fn handle(token: String, command: InteractionCommand, context: Arc<BotContext>) {
+pub async fn handle(token: String, locale: String, command: InteractionCommand, context: Context) {
     let result = match &command {
-        InteractionCommand::Debug { component, guild_id } => debug::run(component, guild_id, &token, &context).await,
+        InteractionCommand::Debug { component, guild_id } => {
+            debug::run(component, guild_id, &token, &locale, &context).await
+        }
         InteractionCommand::Userinfo { user_id, guild_id } => {
-            userinfo::run(*user_id, *guild_id, &token, &context).await
+            userinfo::run(*user_id, *guild_id, &token, &locale, &context).await
         }
     };
 
@@ -29,11 +28,10 @@ pub async fn handle(token: String, command: InteractionCommand, context: Arc<Bot
             );
         }
         if let Err(e) = context
-            .client
+            .interaction_client()
             .create_followup_message(&token)
+            .content(&error.get_user_error(&context.translator, &locale))
             .unwrap()
-            //TODO: use actual lang
-            .content(&error.get_user_error(&context.translator, "en_US"))
             .ephemeral(true)
             .exec()
             .await

@@ -1,9 +1,7 @@
-use crate::cache::voice_state::VoiceState;
-use crate::cache::{Channel, Emoji, Member, Role};
-use crate::{Cache, Metrics};
-use parking_lot::RwLock;
 use std::collections::HashMap;
 use std::sync::Arc;
+
+use parking_lot::RwLock;
 use tracing::{debug, trace};
 use twilight_model::channel::GuildChannel;
 use twilight_model::gateway::payload::incoming::ThreadListSync;
@@ -11,8 +9,14 @@ use twilight_model::guild::Emoji as TwilightEmoji;
 use twilight_model::guild::Guild as TwilightGuild;
 use twilight_model::guild::Role as TwilightRole;
 use twilight_model::guild::{MfaLevel, NSFWLevel, PartialGuild, VerificationLevel};
-use twilight_model::id::{ChannelId, EmojiId, GuildId, RoleId, UserId};
+use twilight_model::util::ImageHash;
 use twilight_model::voice::VoiceState as TwilightVoiceState;
+
+use gearbot_2_lib::util::markers::{ChannelId, EmojiId, GuildId, RoleId, UserId};
+
+use crate::cache::voice_state::VoiceState;
+use crate::cache::{Channel, Emoji, Member, Role};
+use crate::{Cache, Metrics};
 
 #[derive(Clone, Eq, PartialEq)]
 pub enum GuildCacheState {
@@ -35,8 +39,8 @@ impl GuildCacheState {
 
 pub struct Guild {
     pub name: String,
-    pub icon: Option<String>,
-    pub splash: Option<String>,
+    pub icon: Option<ImageHash>,
+    pub splash: Option<ImageHash>,
     pub owner: UserId,
     pub verification_level: VerificationLevel,
     roles: RwLock<HashMap<RoleId, Arc<Role>>>,
@@ -48,7 +52,7 @@ pub struct Guild {
     pub max_members: u64,
     pub vanity_invite: Option<String>,
     pub description: Option<String>,
-    pub banner: Option<String>,
+    pub banner: Option<ImageHash>,
     pub guild_locale: String,
     pub nsfw: NSFWLevel,
     members: Arc<RwLock<HashMap<UserId, Arc<Member>>>>,

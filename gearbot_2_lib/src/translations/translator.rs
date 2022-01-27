@@ -1,11 +1,13 @@
-use crate::translations::GearBotLangKey;
-use fluent_bundle::{bundle::FluentBundle as RawBundle, FluentArgs, FluentMessage, FluentResource, FluentValue};
-use intl_memoizer::concurrent::IntlLangMemoizer;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs;
+
+use fluent_bundle::{bundle::FluentBundle as RawBundle, FluentArgs, FluentMessage, FluentResource, FluentValue};
+use intl_memoizer::concurrent::IntlLangMemoizer;
 use tracing::{debug, error, info, trace, warn};
 use unic_langid::LanguageIdentifier;
+
+use crate::translations::GearBotLangKey;
 
 const FAILED_TRANSLATE_FALLBACK_MSG: &str = "Translation failure occurred: unable to localise '{}'.";
 

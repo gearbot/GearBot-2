@@ -1,8 +1,11 @@
-use crate::BotContext;
-use actix_web::{HttpRequest, HttpResponse, Responder};
-use prometheus::{Encoder, IntCounterVec, IntGauge, IntGaugeVec, Opts, Registry, TextEncoder};
 use std::collections::HashMap;
 use std::sync::Arc;
+
+use actix_web::{HttpRequest, HttpResponse, Responder};
+use prometheus::{Encoder, IntCounterVec, IntGauge, IntGaugeVec, Opts, Registry, TextEncoder};
+
+use crate::util::bot_context::Context;
+use crate::BotContext;
 
 pub struct Metrics {
     pub registry: Registry,
@@ -62,7 +65,7 @@ impl Metrics {
         }
     }
 
-    pub fn recalculate_shard_states(&self, state: &Arc<BotContext>) {
+    pub fn recalculate_shard_states(&self, state: &Context) {
         self.shard_states.reset();
         for (shard_id, info) in state.cluster.info() {
             self.shard_states
